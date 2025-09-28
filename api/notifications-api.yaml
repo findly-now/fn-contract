@@ -1,0 +1,727 @@
+openapi: 3.0.3
+info:
+  title: Notifications API
+  description: |
+    Enterprise notification delivery microservice providing reliable multi-channel
+    message distribution with comprehensive preference management.
+
+    Provides scalable notification delivery through multiple channels (email, SMS, WhatsApp)
+    with advanced user preference controls, delivery tracking, and retry mechanisms.
+
+    **Core Capabilities:**
+    - Multi-channel notification delivery (email, SMS, WhatsApp)
+    - Comprehensive user preference management
+    - Delivery status tracking and confirmation
+    - Automated retry logic with exponential backoff
+    - Template-driven messaging with multilingual support
+    - Real-time event-driven processing
+    - Webhook integration for delivery confirmations
+
+    **Service Boundaries:**
+    This service is responsible solely for notification delivery and user preference
+    management. It receives notification requests from external systems and handles
+    the delivery pipeline, status tracking, and user communication preferences.
+  version: 1.0.0
+  contact:
+    name: Notifications Team
+    url: https://github.com/fn-notifications/api
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:4000
+    description: Development server
+  - url: https://api.notifications.findlynow.com
+    description: Production server
+
+tags:
+  - name: health
+    description: Service health and status endpoints
+  - name: notifications
+    description: Notification management and delivery
+  - name: user-preferences
+    description: User notification preferences and settings
+
+paths:
+  /api/health:
+    get:
+      tags: [health]
+      summary: Check service health
+      description: Returns the overall health status of the notification service including database connectivity.
+      operationId: getHealth
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                service: "notifications"
+                version: "1.0.0"
+                timestamp: "2025-01-15T10:30:00.000Z"
+                checks:
+                  database: "healthy"
+                  memory: "healthy"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  /api/notifications/{id}:
+    get:
+      tags: [notifications]
+      summary: Get notification details
+      description: Retrieve detailed information about a specific notification.
+      operationId: getNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique notification identifier
+          schema:
+            type: string
+            format: uuid
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: Notification found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '400':
+          description: Invalid notification ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}/cancel:
+    put:
+      tags: [notifications]
+      summary: Cancel pending notification
+      description: Cancel a notification that is pending delivery. Cannot cancel already sent notifications.
+      operationId: cancelNotification
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique notification identifier
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Notification cancelled successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Cannot cancel notification (already sent/delivered)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}/delivered:
+    put:
+      tags: [notifications]
+      summary: Mark notification as delivered
+      description: |
+        Webhook endpoint for external services to mark notifications as delivered.
+        Typically called by email/SMS/WhatsApp notification providers.
+      operationId: markNotificationDelivered
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique notification identifier
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Delivery confirmation details
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delivered_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp when notification was delivered
+                external_id:
+                  type: string
+                  description: External provider's message ID
+                metadata:
+                  type: object
+                  description: Additional delivery metadata
+      responses:
+        '200':
+          description: Notification marked as delivered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/notifications/{id}/failed:
+    put:
+      tags: [notifications]
+      summary: Mark notification as failed
+      description: |
+        Webhook endpoint for external services to mark notifications as failed.
+        Typically called by email/SMS/WhatsApp notification providers when delivery fails.
+      operationId: markNotificationFailed
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique notification identifier
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        description: Failure details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  description: Reason for delivery failure
+                  example: "Invalid email address"
+                failed_at:
+                  type: string
+                  format: date-time
+                  description: Timestamp when failure occurred
+                retry_after:
+                  type: integer
+                  description: Seconds to wait before retry
+                metadata:
+                  type: object
+                  description: Additional failure metadata
+      responses:
+        '200':
+          description: Notification marked as failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationResponse'
+        '404':
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{user_id}/notifications:
+    get:
+      tags: [notifications]
+      summary: Get user notifications
+      description: Retrieve notifications for a specific user with optional filtering.
+      operationId: getUserNotifications
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+            example: "user-12345"
+        - name: status
+          in: query
+          description: Filter by notification status
+          schema:
+            type: string
+            enum: [pending, sent, delivered, failed, cancelled]
+            example: "delivered"
+        - name: channel
+          in: query
+          description: Filter by notification channel
+          schema:
+            type: string
+            enum: [email, sms, whatsapp]
+            example: "email"
+        - name: limit
+          in: query
+          description: Maximum number of notifications to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 10
+        - name: offset
+          in: query
+          description: Number of notifications to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+            example: 0
+      responses:
+        '200':
+          description: User notifications retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationListResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{user_id}/preferences:
+    get:
+      tags: [user-preferences]
+      summary: Get user notification preferences
+      description: Retrieve comprehensive notification preferences for a user.
+      operationId: getUserPreferences
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+            example: "user-12345"
+      responses:
+        '200':
+          description: User preferences retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferencesResponse'
+        '404':
+          description: User preferences not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags: [user-preferences]
+      summary: Update user notification preferences
+      description: Update comprehensive notification preferences for a user.
+      operationId: updateUserPreferences
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+            example: "user-12345"
+      requestBody:
+        description: Updated user preferences
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserPreferencesRequest'
+            example:
+              global_enabled: true
+              timezone: "America/New_York"
+              language: "en"
+              channel_preferences:
+                email:
+                  enabled: true
+                  quiet_hours:
+                    start: "22:00"
+                    end: "07:00"
+                whatsapp:
+                  enabled: true
+                  quiet_hours: {}
+                sms:
+                  enabled: false
+      responses:
+        '200':
+          description: Preferences updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferencesResponse'
+        '400':
+          description: Invalid preference data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/users/{user_id}/preferences/reset:
+    post:
+      tags: [user-preferences]
+      summary: Reset user preferences to defaults
+      description: Reset all notification preferences for a user to system defaults.
+      operationId: resetUserPreferences
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          description: Unique user identifier
+          schema:
+            type: string
+            example: "user-12345"
+      responses:
+        '200':
+          description: Preferences reset successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPreferencesResponse'
+        '404':
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - service
+        - version
+        - timestamp
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, degraded]
+          description: Overall service health status
+        service:
+          type: string
+          description: Service name
+          example: "notifications"
+        version:
+          type: string
+          description: Service version
+          example: "1.0.0"
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+        checks:
+          type: object
+          description: Individual component health checks
+          additionalProperties:
+            type: string
+            enum: [healthy, unhealthy, unknown]
+
+    NotificationResponse:
+      type: object
+      required:
+        - id
+        - user_id
+        - channel
+        - status
+        - title
+        - body
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique notification identifier
+        user_id:
+          type: string
+          description: Target user identifier
+        channel:
+          type: string
+          enum: [email, sms, whatsapp]
+          description: Delivery channel
+        status:
+          type: string
+          enum: [pending, sent, delivered, failed, cancelled]
+          description: Current notification status
+        title:
+          type: string
+          description: Notification title/subject
+          example: "Important Update"
+        body:
+          type: string
+          description: Notification content body
+          example: "You have received a new notification. Please check your account for details."
+        metadata:
+          type: object
+          description: Additional notification metadata
+          properties:
+            event_type:
+              type: string
+              example: "entity.created"
+            reference_id:
+              type: string
+              example: "ref-abc-123"
+            attachment_urls:
+              type: array
+              items:
+                type: string
+                format: uri
+              description: URLs to attached files or media
+            sender_id:
+              type: string
+              example: "sender-xyz-789"
+              description: Identifier of the notification sender
+        scheduled_at:
+          type: string
+          format: date-time
+          description: When notification should be sent (null for immediate)
+        sent_at:
+          type: string
+          format: date-time
+          description: When notification was sent
+        delivered_at:
+          type: string
+          format: date-time
+          description: When notification was delivered
+        failed_at:
+          type: string
+          format: date-time
+          description: When notification failed
+        failure_reason:
+          type: string
+          description: Reason for delivery failure
+        retry_count:
+          type: integer
+          description: Number of delivery attempts
+        max_retries:
+          type: integer
+          description: Maximum retry attempts allowed
+        created_at:
+          type: string
+          format: date-time
+          description: Notification creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    NotificationListResponse:
+      type: object
+      required:
+        - notifications
+        - total
+        - limit
+        - offset
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationResponse'
+        total:
+          type: integer
+          description: Total number of notifications for user
+        limit:
+          type: integer
+          description: Requested limit
+        offset:
+          type: integer
+          description: Requested offset
+        has_more:
+          type: boolean
+          description: Whether more notifications are available
+
+    UserPreferencesResponse:
+      type: object
+      required:
+        - user_id
+        - global_enabled
+        - timezone
+        - language
+        - channel_preferences
+      properties:
+        user_id:
+          type: string
+          description: Unique user identifier
+          example: "user-12345"
+        email:
+          type: string
+          format: email
+          description: User's email address
+          example: "user@example.com"
+        phone:
+          type: string
+          description: User's phone number
+          example: "+1234567890"
+        global_enabled:
+          type: boolean
+          description: Master notification toggle
+          example: true
+        timezone:
+          type: string
+          description: User's timezone
+          example: "America/New_York"
+        language:
+          type: string
+          enum: [en, es]
+          description: Preferred language for notifications
+          example: "en"
+        channel_preferences:
+          type: object
+          description: Per-channel notification settings
+          properties:
+            email:
+              $ref: '#/components/schemas/ChannelPreference'
+            sms:
+              $ref: '#/components/schemas/ChannelPreference'
+            whatsapp:
+              $ref: '#/components/schemas/ChannelPreference'
+        created_at:
+          type: string
+          format: date-time
+          description: Preferences creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    UserPreferencesRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          description: User's email address
+        phone:
+          type: string
+          description: User's phone number
+        global_enabled:
+          type: boolean
+          description: Master notification toggle
+        timezone:
+          type: string
+          description: User's timezone
+          example: "America/New_York"
+        language:
+          type: string
+          enum: [en, es]
+          description: Preferred language for notifications
+        channel_preferences:
+          type: object
+          description: Per-channel notification settings
+          properties:
+            email:
+              $ref: '#/components/schemas/ChannelPreferenceRequest'
+            sms:
+              $ref: '#/components/schemas/ChannelPreferenceRequest'
+            whatsapp:
+              $ref: '#/components/schemas/ChannelPreferenceRequest'
+
+    ChannelPreference:
+      type: object
+      required:
+        - enabled
+        - quiet_hours
+      properties:
+        enabled:
+          type: boolean
+          description: Whether this channel is enabled
+          example: true
+        quiet_hours:
+          type: object
+          description: Time range when notifications should be suppressed
+          properties:
+            start:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+              description: Start time in HH:MM format (24-hour)
+              example: "22:00"
+            end:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+              description: End time in HH:MM format (24-hour)
+              example: "07:00"
+        frequency_limit:
+          type: integer
+          minimum: 0
+          description: Maximum notifications per day (0 = unlimited)
+          example: 10
+
+    ChannelPreferenceRequest:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether this channel is enabled
+        quiet_hours:
+          type: object
+          description: Time range when notifications should be suppressed
+          properties:
+            start:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+              description: Start time in HH:MM format (24-hour)
+              example: "22:00"
+            end:
+              type: string
+              pattern: '^([01]?[0-9]|2[0-3]):[0-5][0-9]$'
+              description: End time in HH:MM format (24-hour)
+              example: "07:00"
+        frequency_limit:
+          type: integer
+          minimum: 0
+          description: Maximum notifications per day (0 = unlimited)
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "not_found"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Notification not found"
+        details:
+          type: object
+          description: Additional error details
+        timestamp:
+          type: string
+          format: date-time
+          description: Error occurrence timestamp
+        request_id:
+          type: string
+          description: Unique request identifier for debugging
+
+security: []

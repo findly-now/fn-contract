@@ -1,0 +1,388 @@
+asyncapi: 2.6.0
+info:
+  title: Findly Now Event Contracts
+  version: 1.0.0
+  description: |
+    Event-driven communication contracts for the Findly Now Lost & Found platform.
+
+    This specification defines all asynchronous events flowing between microservices
+    through Confluent Cloud Kafka, enabling rapid item reunification through intelligent
+    notifications and real-time coordination.
+
+    **Event Categories:**
+    - Post lifecycle events (creation, updates, resolution)
+    - User management events (registration, organization membership)
+    - Notification delivery events (sent, delivered, failed)
+    - Matching and claiming events (post matches, item claims)
+
+    **Business Context:**
+    All events support the core Lost & Found workflow:
+    📋 Item Reported → 🔍 Match Detection → 🏃 Claiming → ✅ Recovery
+
+  contact:
+    name: Findly Now Platform Team
+    url: https://github.com/findlynow/contracts
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+defaultContentType: application/json
+
+servers:
+  development:
+    url: pkc-4j8dq.southamerica-east1.gcp.confluent.cloud:9092
+    protocol: kafka-secure
+    description: Confluent Cloud development cluster
+    security:
+      - saslScram: []
+
+  production:
+    url: pkc-prod.southamerica-east1.gcp.confluent.cloud:9092
+    protocol: kafka-secure
+    description: Confluent Cloud production cluster
+    security:
+      - saslScram: []
+
+channels:
+  posts.lifecycle:
+    description: Post lifecycle events from fn-posts service
+    publish:
+      summary: Posts service publishes lifecycle events
+      operationId: publishPostEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PostCreated'
+          - $ref: '#/components/messages/PostUpdated'
+          - $ref: '#/components/messages/PostResolved'
+          - $ref: '#/components/messages/PostDeleted'
+          - $ref: '#/components/messages/PhotoAdded'
+          - $ref: '#/components/messages/PhotoRemoved'
+    subscribe:
+      summary: Services consume post lifecycle events
+      operationId: handlePostEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PostCreated'
+          - $ref: '#/components/messages/PostUpdated'
+          - $ref: '#/components/messages/PostResolved'
+          - $ref: '#/components/messages/PostDeleted'
+          - $ref: '#/components/messages/PhotoAdded'
+          - $ref: '#/components/messages/PhotoRemoved'
+
+  posts.matching:
+    description: Post matching and claiming events
+    publish:
+      summary: Matching service publishes match events
+      operationId: publishMatchEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PostMatched'
+          - $ref: '#/components/messages/PostClaimed'
+    subscribe:
+      summary: Services consume matching events
+      operationId: handleMatchEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/PostMatched'
+          - $ref: '#/components/messages/PostClaimed'
+
+  users.lifecycle:
+    description: User and organization events
+    publish:
+      summary: User service publishes user events
+      operationId: publishUserEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/UserRegistered'
+          - $ref: '#/components/messages/StaffAdded'
+          - $ref: '#/components/messages/CommunicationOptIn'
+    subscribe:
+      summary: Services consume user events
+      operationId: handleUserEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/UserRegistered'
+          - $ref: '#/components/messages/StaffAdded'
+          - $ref: '#/components/messages/CommunicationOptIn'
+
+  notifications.delivery:
+    description: Notification delivery events from fn-notifications service
+    publish:
+      summary: Notifications service publishes delivery events
+      operationId: publishNotificationEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/NotificationSent'
+          - $ref: '#/components/messages/NotificationDelivered'
+          - $ref: '#/components/messages/NotificationFailed'
+    subscribe:
+      summary: Services consume notification events
+      operationId: handleNotificationEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/NotificationSent'
+          - $ref: '#/components/messages/NotificationDelivered'
+          - $ref: '#/components/messages/NotificationFailed'
+
+  media-ai.enrichment:
+    description: AI-powered photo analysis and post enrichment events
+    publish:
+      summary: Media AI service publishes enhancement events
+      operationId: publishEnhancementEvent
+      message:
+        $ref: '#/components/messages/PostEnhanced'
+    subscribe:
+      summary: Services consume post enhancement events
+      operationId: handleEnhancementEvent
+      message:
+        $ref: '#/components/messages/PostEnhanced'
+
+components:
+  securitySchemes:
+    saslScram:
+      type: scramSha256
+      description: SASL/SCRAM authentication for Confluent Cloud
+
+  messages:
+    PostCreated:
+      name: PostCreated
+      title: Post Created Event
+      summary: Published when a new lost/found post is created
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostCreated'
+      examples:
+        - name: Lost iPhone
+          summary: Example of a lost item post
+          payload:
+            id: "550e8400-e29b-41d4-a716-446655440000"
+            event_type: "post.created"
+            post_id: "123e4567-e89b-12d3-a456-426614174000"
+            user_id: "user-12345"
+            tenant_id: "org-67890"
+            timestamp: "2025-01-15T10:30:00.000Z"
+            version: 1
+            data:
+              post:
+                id: "123e4567-e89b-12d3-a456-426614174000"
+                title: "Lost iPhone 13 Pro"
+                description: "Black iPhone 13 Pro lost near Central Park"
+                type: "lost"
+                status: "active"
+                location:
+                  latitude: 40.7829
+                  longitude: -73.9654
+                  address: "Central Park, New York, NY"
+                radius_meters: 1000
+                photos:
+                  - id: "photo-1"
+                    original_url: "https://storage.example.com/photos/1.jpg"
+                    thumbnail_url: "https://storage.example.com/thumbs/1.jpg"
+                user_id: "user-12345"
+                organization_id: "org-67890"
+                created_at: "2025-01-15T10:30:00.000Z"
+                updated_at: "2025-01-15T10:30:00.000Z"
+
+    PostUpdated:
+      name: PostUpdated
+      title: Post Updated Event
+      summary: Published when post details are modified
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostUpdated'
+
+    PostResolved:
+      name: PostResolved
+      title: Post Resolved Event
+      summary: Published when a post is marked as resolved
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostResolved'
+
+    PostDeleted:
+      name: PostDeleted
+      title: Post Deleted Event
+      summary: Published when a post is deleted
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostDeleted'
+
+    PhotoAdded:
+      name: PhotoAdded
+      title: Photo Added Event
+      summary: Published when a photo is added to a post
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PhotoAdded'
+
+    PhotoRemoved:
+      name: PhotoRemoved
+      title: Photo Removed Event
+      summary: Published when a photo is removed from a post
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PhotoRemoved'
+
+    PostMatched:
+      name: PostMatched
+      title: Post Matched Event
+      summary: Published when a potential match is detected between posts
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostMatched'
+      examples:
+        - name: Match detected
+          summary: Example of posts matching
+          payload:
+            id: "match-event-123"
+            event_type: "post.matched"
+            timestamp: "2025-01-15T10:35:00.000Z"
+            version: 1
+            data:
+              post_id: "123e4567-e89b-12d3-a456-426614174000"
+              matched_post_id: "987e6543-e21c-12d3-a456-426614174000"
+              reporter_id: "user-12345"
+              matcher_id: "user-54321"
+              confidence_score: 0.85
+              match_reason: "Similar photos and location proximity"
+
+    PostClaimed:
+      name: PostClaimed
+      title: Post Claimed Event
+      summary: Published when someone claims an item
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostClaimed'
+      examples:
+        - name: Item claimed
+          summary: Example of someone claiming an item
+          payload:
+            id: "claim-event-456"
+            event_type: "post.claimed"
+            timestamp: "2025-01-15T11:00:00.000Z"
+            version: 1
+            data:
+              post_id: "123e4567-e89b-12d3-a456-426614174000"
+              reporter_id: "user-12345"
+              claimer_id: "user-99999"
+              claim_message: "I believe this is my lost phone"
+
+    UserRegistered:
+      name: UserRegistered
+      title: User Registered Event
+      summary: Published when a new user registers
+      contentType: application/json
+      payload:
+        $ref: './schemas/user-events.json#/UserRegistered'
+      examples:
+        - name: New user registration
+          summary: Example of user registration
+          payload:
+            id: "user-event-789"
+            event_type: "user.registered"
+            timestamp: "2025-01-15T09:00:00.000Z"
+            version: 1
+            data:
+              user_id: "user-12345"
+              name: "John Doe"
+              email: "john.doe@example.com"
+              phone: "+1234567890"
+              registration_source: "web"
+
+    StaffAdded:
+      name: StaffAdded
+      title: Organization Staff Added Event
+      summary: Published when staff is added to an organization
+      contentType: application/json
+      payload:
+        $ref: './schemas/user-events.json#/StaffAdded'
+
+    CommunicationOptIn:
+      name: CommunicationOptIn
+      title: Communication Opt-In Event
+      summary: Published when user opts in to communications
+      contentType: application/json
+      payload:
+        $ref: './schemas/user-events.json#/CommunicationOptIn'
+
+    NotificationSent:
+      name: NotificationSent
+      title: Notification Sent Event
+      summary: Published when a notification is sent to delivery channel
+      contentType: application/json
+      payload:
+        $ref: './schemas/notification-events.json#/NotificationSent'
+      examples:
+        - name: Email notification sent
+          summary: Example of email notification dispatch
+          payload:
+            id: "notif-event-123"
+            event_type: "notification.sent"
+            timestamp: "2025-01-15T10:32:00.000Z"
+            version: 1
+            data:
+              notification_id: "notif-456"
+              user_id: "user-12345"
+              channel: "email"
+              title: "New Item Found"
+              delivery_provider: "swoosh"
+              external_id: "email-789"
+
+    NotificationDelivered:
+      name: NotificationDelivered
+      title: Notification Delivered Event
+      summary: Published when notification delivery is confirmed
+      contentType: application/json
+      payload:
+        $ref: './schemas/notification-events.json#/NotificationDelivered'
+
+    NotificationFailed:
+      name: NotificationFailed
+      title: Notification Failed Event
+      summary: Published when notification delivery fails
+      contentType: application/json
+      payload:
+        $ref: './schemas/notification-events.json#/NotificationFailed'
+
+    PostEnhanced:
+      name: PostEnhanced
+      title: Post Enhanced Event
+      summary: Published when AI analysis enhances a post with metadata
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/PostEnhanced'
+      examples:
+        - name: AI photo analysis completed
+          summary: Example of AI-enhanced post with extracted metadata
+          payload:
+            id: "enhance-event-789"
+            event_type: "post.enhanced"
+            timestamp: "2025-01-15T10:35:00.000Z"
+            version: 1
+            data:
+              post_id: "123e4567-e89b-12d3-a456-426614174000"
+              enhanced_metadata:
+                enhanced_description: "Small white Chihuahua dog found in Central Park"
+                tags: ["dog", "chihuahua", "white", "small", "park", "pet"]
+                attributes:
+                  objects:
+                    - name: "dog"
+                      confidence: 0.95
+                      bounding_box: { "x": 120, "y": 80, "width": 200, "height": 180 }
+                    - name: "collar"
+                      confidence: 0.88
+                      bounding_box: { "x": 140, "y": 90, "width": 60, "height": 20 }
+                  colors: ["white", "brown"]
+                  scene: "park"
+                  text_content: []
+                location_inference:
+                  latitude: 40.7829
+                  longitude: -73.9654
+                  source: "landmark_detection"
+                  confidence: 0.82
+              ai_confidence: 0.91
+              model_versions:
+                object_detection: "yolo-v8.0.2"
+                scene_classification: "resnet-50-v1.1"
+                location_inference: "gpt-4-vision-preview"
+              processing_time_ms: 2340

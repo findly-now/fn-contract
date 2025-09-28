@@ -1,0 +1,521 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/value-objects.json",
+  "title": "Shared Value Objects",
+  "description": "Common value objects and identifiers used across Findly Now microservices",
+  "definitions": {
+    "UUID": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Standard UUID identifier",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "PostID": {
+      "allOf": [
+        { "$ref": "#/definitions/UUID" }
+      ],
+      "description": "Unique post identifier"
+    },
+    "PhotoID": {
+      "allOf": [
+        { "$ref": "#/definitions/UUID" }
+      ],
+      "description": "Unique photo identifier"
+    },
+    "UserID": {
+      "type": "string",
+      "description": "User identifier (can be UUID or string)",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "OrganizationID": {
+      "allOf": [
+        { "$ref": "#/definitions/UUID" }
+      ],
+      "description": "Organization identifier for multi-tenant support"
+    },
+    "NotificationID": {
+      "allOf": [
+        { "$ref": "#/definitions/UUID" }
+      ],
+      "description": "Unique notification identifier"
+    },
+    "EventID": {
+      "allOf": [
+        { "$ref": "#/definitions/UUID" }
+      ],
+      "description": "Unique event identifier"
+    },
+    "Timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp with timezone"
+    },
+    "PostType": {
+      "type": "string",
+      "enum": ["lost", "found"],
+      "description": "Type of post in Lost & Found system"
+    },
+    "PostStatus": {
+      "type": "string",
+      "enum": ["active", "resolved", "expired", "deleted"],
+      "description": "Current status of a post"
+    },
+    "NotificationChannel": {
+      "type": "string",
+      "enum": ["email", "sms", "whatsapp", "push"],
+      "description": "Available notification delivery channels"
+    },
+    "NotificationStatus": {
+      "type": "string",
+      "enum": ["pending", "sent", "delivered", "failed", "cancelled"],
+      "description": "Current status of a notification"
+    },
+    "Language": {
+      "type": "string",
+      "enum": ["en", "es"],
+      "description": "Supported languages"
+    },
+    "Timezone": {
+      "type": "string",
+      "description": "IANA timezone identifier",
+      "examples": [
+        "America/New_York",
+        "America/Los_Angeles",
+        "Europe/London",
+        "Asia/Tokyo"
+      ]
+    },
+    "Coordinates": {
+      "type": "object",
+      "required": ["latitude", "longitude"],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Latitude coordinate in decimal degrees"
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Longitude coordinate in decimal degrees"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Address": {
+      "type": "object",
+      "properties": {
+        "street": {
+          "type": "string",
+          "description": "Street address"
+        },
+        "city": {
+          "type": "string",
+          "description": "City name"
+        },
+        "state": {
+          "type": "string",
+          "description": "State or province"
+        },
+        "country": {
+          "type": "string",
+          "description": "Country name"
+        },
+        "postal_code": {
+          "type": "string",
+          "description": "Postal or ZIP code"
+        },
+        "formatted": {
+          "type": "string",
+          "description": "Human-readable formatted address"
+        }
+      }
+    },
+    "ContactInfo": {
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "Email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number in international format",
+          "pattern": "^\\+[1-9]\\d{1,14}$"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name",
+          "minLength": 1,
+          "maxLength": 100
+        }
+      }
+    },
+    "Pagination": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100,
+          "default": 20,
+          "description": "Maximum number of items to return"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Number of items to skip"
+        },
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of items available"
+        },
+        "has_more": {
+          "type": "boolean",
+          "description": "Whether more items are available"
+        }
+      }
+    },
+    "ErrorType": {
+      "type": "string",
+      "enum": [
+        "validation_error",
+        "authentication_error",
+        "authorization_error",
+        "not_found_error",
+        "conflict_error",
+        "rate_limit_error",
+        "upload_error",
+        "server_error",
+        "service_unavailable_error"
+      ],
+      "description": "Standard error types across services"
+    },
+    "HealthStatus": {
+      "type": "string",
+      "enum": ["healthy", "degraded", "unhealthy", "unknown"],
+      "description": "Health check status values"
+    },
+    "FileMetadata": {
+      "type": "object",
+      "required": ["filename", "file_size", "mime_type"],
+      "properties": {
+        "filename": {
+          "type": "string",
+          "description": "Original filename"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type of the file"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image width in pixels (for images)"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image height in pixels (for images)"
+        },
+        "md5_hash": {
+          "type": "string",
+          "description": "MD5 hash of file content"
+        }
+      }
+    },
+    "URL": {
+      "type": "string",
+      "format": "uri",
+      "description": "Valid URL"
+    },
+    "SearchRadius": {
+      "type": "integer",
+      "minimum": 100,
+      "maximum": 50000,
+      "description": "Search radius in meters for geospatial queries"
+    },
+    "Version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Schema or entity version number"
+    },
+    "EventType": {
+      "type": "string",
+      "enum": [
+        "post.created",
+        "post.updated",
+        "post.resolved",
+        "post.deleted",
+        "post.photo.added",
+        "post.photo.removed",
+        "post.matched",
+        "post.claimed",
+        "user.registered",
+        "organization.staff_added",
+        "communication.opt_in",
+        "notification.sent",
+        "notification.delivered",
+        "notification.failed",
+        "post.enhanced"
+      ],
+      "description": "All event types in the system"
+    },
+    "OrganizationRole": {
+      "type": "string",
+      "enum": ["admin", "staff", "viewer"],
+      "description": "User roles within an organization"
+    },
+    "NotificationFrequency": {
+      "type": "string",
+      "enum": ["immediate", "daily_digest", "weekly_digest"],
+      "description": "Notification frequency preferences"
+    },
+    "QuietHours": {
+      "type": "object",
+      "properties": {
+        "start": {
+          "type": "string",
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "Start time in HH:MM format (24-hour)"
+        },
+        "end": {
+          "type": "string",
+          "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+          "description": "End time in HH:MM format (24-hour)"
+        }
+      },
+      "description": "Time range when notifications should be suppressed"
+    },
+    "ConfidenceScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "AI confidence score (0-1)"
+    },
+    "AIModelVersion": {
+      "type": "string",
+      "description": "AI model version identifier for traceability",
+      "examples": [
+        "yolo-v8.0.2",
+        "resnet-50-v1.1",
+        "gpt-4-vision-preview",
+        "tesseract-5.0"
+      ]
+    },
+    "ObjectDetection": {
+      "type": "object",
+      "required": ["name", "confidence"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Detected object name"
+        },
+        "confidence": {
+          "$ref": "#/definitions/ConfidenceScore"
+        },
+        "bounding_box": {
+          "$ref": "#/definitions/BoundingBox"
+        },
+        "attributes": {
+          "type": "object",
+          "properties": {
+            "color": { "type": "string" },
+            "size": { "type": "string", "enum": ["small", "medium", "large"] },
+            "material": { "type": "string" },
+            "brand": { "type": "string" }
+          }
+        }
+      }
+    },
+    "BoundingBox": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized X coordinate of top-left corner (0-1)"
+        },
+        "y": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized Y coordinate of top-left corner (0-1)"
+        },
+        "width": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized width of bounding box (0-1)"
+        },
+        "height": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "Normalized height of bounding box (0-1)"
+        }
+      },
+      "description": "Normalized bounding box coordinates (0-1 relative to image dimensions)"
+    },
+    "AbsoluteBoundingBox": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute X coordinate in pixels"
+        },
+        "y": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Absolute Y coordinate in pixels"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Height in pixels"
+        }
+      },
+      "description": "Absolute bounding box coordinates in pixels"
+    },
+    "LocationInferenceSource": {
+      "type": "string",
+      "enum": ["exif", "ai_inference", "landmark_detection", "user_input"],
+      "description": "Source of location information"
+    },
+    "AITag": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 50,
+      "description": "AI-generated tag for categorization and search"
+    },
+    "SceneClassification": {
+      "type": "string",
+      "enum": [
+        "indoor", "outdoor", "park", "street", "building", "restaurant",
+        "office", "home", "transport", "shop", "nature", "urban", "other"
+      ],
+      "description": "AI-detected scene classification"
+    },
+    "ProcessingStatus": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed", "skipped"],
+      "description": "AI processing status"
+    },
+    "SceneClassification": {
+      "type": "object",
+      "required": ["scene", "confidence"],
+      "properties": {
+        "scene": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Scene type (park, indoor, street, etc.)"
+        },
+        "confidence": {
+          "$ref": "#/definitions/ConfidenceScore"
+        },
+        "sub_scenes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Sub-scene categories"
+        }
+      },
+      "description": "AI scene classification result"
+    },
+    "TextExtraction": {
+      "type": "object",
+      "required": ["text", "confidence"],
+      "properties": {
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Extracted text content"
+        },
+        "confidence": {
+          "$ref": "#/definitions/ConfidenceScore"
+        },
+        "bounding_box": {
+          "$ref": "#/definitions/BoundingBox"
+        },
+        "language": {
+          "type": "string",
+          "description": "Detected language code"
+        }
+      },
+      "description": "OCR text extraction result"
+    },
+    "ColorDetection": {
+      "type": "object",
+      "required": ["color_name", "confidence"],
+      "properties": {
+        "color_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Detected color name"
+        },
+        "hex_code": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hex color code"
+        },
+        "confidence": {
+          "$ref": "#/definitions/ConfidenceScore"
+        },
+        "dominant": {
+          "type": "boolean",
+          "default": false,
+          "description": "Is this a dominant color in the image"
+        }
+      },
+      "description": "AI color detection result"
+    },
+    "EnhancedLocationInference": {
+      "type": "object",
+      "required": ["latitude", "longitude", "confidence", "source"],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Inferred latitude"
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Inferred longitude"
+        },
+        "confidence": {
+          "$ref": "#/definitions/ConfidenceScore"
+        },
+        "source": {
+          "$ref": "#/definitions/LocationInferenceSource"
+        },
+        "landmark_name": {
+          "type": "string",
+          "description": "Detected landmark name"
+        }
+      },
+      "description": "AI-inferred location from image analysis"
+    }
+  }
+}

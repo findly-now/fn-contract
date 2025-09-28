@@ -1,0 +1,576 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/post-events.json",
+  "title": "Post Events Schema",
+  "description": "Event schemas for post lifecycle, photos, matching, and claiming in the Lost & Found platform",
+  "definitions": {
+    "BaseEvent": {
+      "type": "object",
+      "required": ["id", "event_type", "timestamp", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique event identifier"
+        },
+        "event_type": {
+          "type": "string",
+          "description": "Type of event"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event occurrence timestamp"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Event schema version"
+        }
+      }
+    },
+    "PostEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseEvent" },
+        {
+          "type": "object",
+          "required": ["post_id", "user_id", "data"],
+          "properties": {
+            "post_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Post identifier"
+            },
+            "user_id": {
+              "type": "string",
+              "description": "User who triggered the event"
+            },
+            "tenant_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Organization identifier (for multi-tenant)",
+              "nullable": true
+            },
+            "data": {
+              "type": "object",
+              "description": "Event-specific data"
+            }
+          }
+        }
+      ]
+    },
+    "Post": {
+      "type": "object",
+      "required": ["id", "title", "type", "status", "location", "photos", "user_id", "created_at", "updated_at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Post identifier"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Post title"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Detailed description",
+          "nullable": true
+        },
+        "type": {
+          "type": "string",
+          "enum": ["lost", "found"],
+          "description": "Post type"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "resolved", "expired", "deleted"],
+          "description": "Current status"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "radius_meters": {
+          "type": "integer",
+          "minimum": 100,
+          "maximum": 50000,
+          "description": "Search radius"
+        },
+        "photos": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Photo" },
+          "description": "Associated photos"
+        },
+        "user_id": {
+          "type": "string",
+          "description": "Post creator"
+        },
+        "organization_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Organization ID",
+          "nullable": true
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Last update timestamp"
+        }
+      }
+    },
+    "Location": {
+      "type": "object",
+      "required": ["latitude", "longitude"],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90,
+          "description": "Latitude coordinate"
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180,
+          "description": "Longitude coordinate"
+        },
+        "address": {
+          "type": "string",
+          "description": "Human-readable address",
+          "nullable": true
+        }
+      }
+    },
+    "Photo": {
+      "type": "object",
+      "required": ["id", "post_id", "original_url", "created_at"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Photo identifier"
+        },
+        "post_id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Associated post ID"
+        },
+        "original_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Original photo URL"
+        },
+        "thumbnail_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Thumbnail URL",
+          "nullable": true
+        },
+        "filename": {
+          "type": "string",
+          "description": "Original filename"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image width"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image height"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Display order"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Upload timestamp"
+        }
+      }
+    }
+  },
+  "PostCreated": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.created"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post"],
+            "properties": {
+              "post": { "$ref": "#/definitions/Post" }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostUpdated": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.updated"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post", "changes", "previous"],
+            "properties": {
+              "post": { "$ref": "#/definitions/Post" },
+              "changes": {
+                "type": "object",
+                "description": "Fields that were changed"
+              },
+              "previous": {
+                "type": "object",
+                "description": "Previous values of changed fields"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostResolved": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.resolved"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "new_status", "previous_status"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "new_status": {
+                "const": "resolved"
+              },
+              "previous_status": {
+                "type": "string",
+                "enum": ["active", "expired"]
+              },
+              "reason": {
+                "type": "string",
+                "description": "Reason for resolution"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostDeleted": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.deleted"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "new_status", "previous_status"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "new_status": {
+                "const": "deleted"
+              },
+              "previous_status": {
+                "type": "string",
+                "enum": ["active", "resolved", "expired"]
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PhotoAdded": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.photo.added"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "photo"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "photo": { "$ref": "#/definitions/Photo" }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PhotoRemoved": {
+    "allOf": [
+      { "$ref": "#/definitions/PostEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.photo.removed"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "photo"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "photo": { "$ref": "#/definitions/Photo" }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostMatched": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.matched"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "matched_post_id", "reporter_id", "matcher_id"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Original post ID"
+              },
+              "matched_post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Matched post ID"
+              },
+              "reporter_id": {
+                "type": "string",
+                "description": "Original post creator"
+              },
+              "matcher_id": {
+                "type": "string",
+                "description": "Matched post creator"
+              },
+              "confidence_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Match confidence (0-1)"
+              },
+              "match_reason": {
+                "type": "string",
+                "description": "Reason for the match"
+              },
+              "match_metadata": {
+                "type": "object",
+                "description": "Additional matching metadata"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostClaimed": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.claimed"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "reporter_id", "claimer_id"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Post being claimed"
+              },
+              "reporter_id": {
+                "type": "string",
+                "description": "Original post creator"
+              },
+              "claimer_id": {
+                "type": "string",
+                "description": "Person claiming the item"
+              },
+              "claim_message": {
+                "type": "string",
+                "description": "Message from claimer"
+              },
+              "contact_info": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "phone": {
+                    "type": "string"
+                  }
+                },
+                "description": "Claimer contact information"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PostEnhanced": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "post.enhanced"
+          },
+          "data": {
+            "type": "object",
+            "required": ["post_id", "enhanced_metadata", "ai_confidence"],
+            "properties": {
+              "post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Post being enhanced"
+              },
+              "enhanced_metadata": {
+                "type": "object",
+                "required": ["tags", "attributes"],
+                "properties": {
+                  "enhanced_description": {
+                    "type": "string",
+                    "description": "AI-generated enhanced description"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "AI-extracted tags (object, color, brand, etc.)"
+                  },
+                  "attributes": {
+                    "type": "object",
+                    "properties": {
+                      "objects": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": { "type": "string" },
+                            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "bounding_box": {
+                              "type": "object",
+                              "properties": {
+                                "x": { "type": "number" },
+                                "y": { "type": "number" },
+                                "width": { "type": "number" },
+                                "height": { "type": "number" }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "colors": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                      },
+                      "scene": {
+                        "type": "string",
+                        "description": "Detected scene/environment"
+                      },
+                      "text_content": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "OCR extracted text"
+                      }
+                    }
+                  },
+                  "location_inference": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+                      "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+                      "source": {
+                        "type": "string",
+                        "enum": ["exif", "ai_inference", "landmark_detection"]
+                      },
+                      "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                    }
+                  }
+                }
+              },
+              "ai_confidence": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1,
+                "description": "Overall AI analysis confidence score"
+              },
+              "model_versions": {
+                "type": "object",
+                "properties": {
+                  "object_detection": { "type": "string" },
+                  "scene_classification": { "type": "string" },
+                  "ocr": { "type": "string" },
+                  "location_inference": { "type": "string" }
+                },
+                "description": "AI model versions used for traceability"
+              },
+              "processing_time_ms": {
+                "type": "integer",
+                "minimum": 0,
+                "description": "Processing time in milliseconds"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

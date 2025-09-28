@@ -1,0 +1,326 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/notification-events.json",
+  "title": "Notification Events Schema",
+  "description": "Event schemas for notification delivery lifecycle in the Lost & Found platform",
+  "definitions": {
+    "BaseEvent": {
+      "type": "object",
+      "required": ["id", "event_type", "timestamp", "version"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique event identifier"
+        },
+        "event_type": {
+          "type": "string",
+          "description": "Type of event"
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Event occurrence timestamp"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Event schema version"
+        }
+      }
+    },
+    "NotificationEvent": {
+      "allOf": [
+        { "$ref": "#/definitions/BaseEvent" },
+        {
+          "type": "object",
+          "required": ["notification_id", "user_id", "data"],
+          "properties": {
+            "notification_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Notification identifier"
+            },
+            "user_id": {
+              "type": "string",
+              "description": "Target user identifier"
+            },
+            "data": {
+              "type": "object",
+              "description": "Event-specific data"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "NotificationSent": {
+    "allOf": [
+      { "$ref": "#/definitions/NotificationEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "notification.sent"
+          },
+          "data": {
+            "type": "object",
+            "required": ["notification_id", "user_id", "channel", "title"],
+            "properties": {
+              "notification_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Notification identifier"
+              },
+              "user_id": {
+                "type": "string",
+                "description": "Target user"
+              },
+              "channel": {
+                "type": "string",
+                "enum": ["email", "sms", "whatsapp"],
+                "description": "Delivery channel"
+              },
+              "title": {
+                "type": "string",
+                "description": "Notification title/subject"
+              },
+              "body": {
+                "type": "string",
+                "description": "Notification content"
+              },
+              "delivery_provider": {
+                "type": "string",
+                "enum": ["swoosh", "twilio", "sendgrid"],
+                "description": "Service provider used for delivery"
+              },
+              "external_id": {
+                "type": "string",
+                "description": "Provider's message ID"
+              },
+              "metadata": {
+                "type": "object",
+                "properties": {
+                  "event_type": {
+                    "type": "string",
+                    "description": "Original event that triggered notification"
+                  },
+                  "reference_id": {
+                    "type": "string",
+                    "description": "Reference to related entity (post, user, etc.)"
+                  },
+                  "template_id": {
+                    "type": "string",
+                    "description": "Template used for rendering"
+                  },
+                  "language": {
+                    "type": "string",
+                    "enum": ["en", "es"],
+                    "description": "Notification language"
+                  },
+                  "variables": {
+                    "type": "object",
+                    "description": "Template variables used"
+                  }
+                }
+              },
+              "recipient_info": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "description": "Recipient email (for email notifications)"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "description": "Recipient phone (for SMS/WhatsApp)"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Recipient name"
+                  }
+                }
+              },
+              "scheduled_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When notification was scheduled (null for immediate)"
+              },
+              "sent_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When notification was dispatched"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "NotificationDelivered": {
+    "allOf": [
+      { "$ref": "#/definitions/NotificationEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "notification.delivered"
+          },
+          "data": {
+            "type": "object",
+            "required": ["notification_id", "user_id", "channel", "delivered_at"],
+            "properties": {
+              "notification_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Notification identifier"
+              },
+              "user_id": {
+                "type": "string",
+                "description": "Target user"
+              },
+              "channel": {
+                "type": "string",
+                "enum": ["email", "sms", "whatsapp"],
+                "description": "Delivery channel"
+              },
+              "delivered_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Delivery confirmation timestamp"
+              },
+              "delivery_provider": {
+                "type": "string",
+                "enum": ["swoosh", "twilio", "sendgrid"],
+                "description": "Service provider"
+              },
+              "external_id": {
+                "type": "string",
+                "description": "Provider's message ID"
+              },
+              "delivery_metadata": {
+                "type": "object",
+                "properties": {
+                  "provider_status": {
+                    "type": "string",
+                    "description": "Provider-specific delivery status"
+                  },
+                  "delivery_attempt": {
+                    "type": "integer",
+                    "description": "Which delivery attempt succeeded"
+                  },
+                  "latency_ms": {
+                    "type": "integer",
+                    "description": "Delivery latency in milliseconds"
+                  },
+                  "recipient_device": {
+                    "type": "string",
+                    "description": "Device information (if available)"
+                  }
+                }
+              },
+              "sent_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Original send timestamp"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "NotificationFailed": {
+    "allOf": [
+      { "$ref": "#/definitions/NotificationEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "notification.failed"
+          },
+          "data": {
+            "type": "object",
+            "required": ["notification_id", "user_id", "channel", "failed_at", "failure_reason"],
+            "properties": {
+              "notification_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Notification identifier"
+              },
+              "user_id": {
+                "type": "string",
+                "description": "Target user"
+              },
+              "channel": {
+                "type": "string",
+                "enum": ["email", "sms", "whatsapp"],
+                "description": "Delivery channel"
+              },
+              "failed_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Failure timestamp"
+              },
+              "failure_reason": {
+                "type": "string",
+                "description": "Reason for delivery failure"
+              },
+              "failure_type": {
+                "type": "string",
+                "enum": ["permanent", "temporary", "rate_limit", "invalid_recipient", "provider_error"],
+                "description": "Type of failure"
+              },
+              "delivery_provider": {
+                "type": "string",
+                "enum": ["swoosh", "twilio", "sendgrid"],
+                "description": "Service provider"
+              },
+              "external_id": {
+                "type": "string",
+                "description": "Provider's message ID"
+              },
+              "error_code": {
+                "type": "string",
+                "description": "Provider-specific error code"
+              },
+              "retry_info": {
+                "type": "object",
+                "properties": {
+                  "retry_count": {
+                    "type": "integer",
+                    "description": "Current retry attempt"
+                  },
+                  "max_retries": {
+                    "type": "integer",
+                    "description": "Maximum retry attempts"
+                  },
+                  "retry_after": {
+                    "type": "integer",
+                    "description": "Seconds to wait before next retry"
+                  },
+                  "will_retry": {
+                    "type": "boolean",
+                    "description": "Whether system will attempt retry"
+                  },
+                  "backoff_strategy": {
+                    "type": "string",
+                    "enum": ["exponential", "linear", "fixed"],
+                    "description": "Retry backoff strategy"
+                  }
+                }
+              },
+              "sent_at": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Original send timestamp"
+              },
+              "circuit_breaker_triggered": {
+                "type": "boolean",
+                "description": "Whether failure triggered circuit breaker"
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}

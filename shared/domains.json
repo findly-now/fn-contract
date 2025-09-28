@@ -1,0 +1,540 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/domains.json",
+  "title": "Domain Entities",
+  "description": "Shared domain entities and aggregates used across Findly Now microservices",
+  "definitions": {
+    "Location": {
+      "type": "object",
+      "required": ["latitude", "longitude"],
+      "properties": {
+        "latitude": {
+          "$ref": "value-objects.json#/definitions/Coordinates/properties/latitude"
+        },
+        "longitude": {
+          "$ref": "value-objects.json#/definitions/Coordinates/properties/longitude"
+        },
+        "address": {
+          "type": "string",
+          "description": "Human-readable address"
+        },
+        "accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Location accuracy in meters"
+        },
+        "source": {
+          "type": "string",
+          "enum": ["gps", "network", "user_input", "geocoded"],
+          "description": "Source of location data"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Photo": {
+      "type": "object",
+      "required": ["id", "post_id", "original_url", "created_at"],
+      "properties": {
+        "id": {
+          "$ref": "value-objects.json#/definitions/PhotoID"
+        },
+        "post_id": {
+          "$ref": "value-objects.json#/definitions/PostID"
+        },
+        "original_url": {
+          "$ref": "value-objects.json#/definitions/URL"
+        },
+        "thumbnail_url": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/URL" }
+          ],
+          "nullable": true
+        },
+        "filename": {
+          "type": "string",
+          "description": "Original filename"
+        },
+        "file_size": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "File size in bytes"
+        },
+        "mime_type": {
+          "type": "string",
+          "description": "MIME type"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image width in pixels"
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Image height in pixels"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Display order within post"
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Post": {
+      "type": "object",
+      "description": "Post aggregate root - manages lost/found item posts",
+      "required": ["id", "title", "type", "status", "location", "photos", "user_id", "created_at", "updated_at"],
+      "properties": {
+        "id": {
+          "$ref": "value-objects.json#/definitions/PostID"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Post title"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Detailed description",
+          "nullable": true
+        },
+        "type": {
+          "$ref": "value-objects.json#/definitions/PostType"
+        },
+        "status": {
+          "$ref": "value-objects.json#/definitions/PostStatus"
+        },
+        "location": {
+          "$ref": "#/definitions/Location"
+        },
+        "radius_meters": {
+          "$ref": "value-objects.json#/definitions/SearchRadius"
+        },
+        "photos": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Photo" },
+          "minItems": 0,
+          "maxItems": 10,
+          "description": "Associated photos"
+        },
+        "user_id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "organization_id": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/OrganizationID" }
+          ],
+          "nullable": true
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 50
+          },
+          "maxItems": 10,
+          "description": "Searchable tags"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "reward_offered": {
+              "type": "boolean",
+              "description": "Whether a reward is offered"
+            },
+            "reward_amount": {
+              "type": "number",
+              "minimum": 0,
+              "description": "Reward amount if offered"
+            },
+            "urgency": {
+              "type": "string",
+              "enum": ["low", "medium", "high", "critical"],
+              "description": "Post urgency level"
+            },
+            "category": {
+              "type": "string",
+              "enum": ["electronics", "jewelry", "clothing", "documents", "pets", "vehicles", "other"],
+              "description": "Item category"
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "resolved_at": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timestamp" }
+          ],
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "UserPreferences": {
+      "type": "object",
+      "description": "User notification preferences aggregate",
+      "required": ["user_id", "global_enabled", "timezone", "language", "channel_preferences"],
+      "properties": {
+        "user_id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "User's phone number"
+        },
+        "global_enabled": {
+          "type": "boolean",
+          "description": "Master notification toggle"
+        },
+        "timezone": {
+          "$ref": "value-objects.json#/definitions/Timezone"
+        },
+        "language": {
+          "$ref": "value-objects.json#/definitions/Language"
+        },
+        "channel_preferences": {
+          "type": "object",
+          "properties": {
+            "email": {
+              "$ref": "#/definitions/ChannelPreference"
+            },
+            "sms": {
+              "$ref": "#/definitions/ChannelPreference"
+            },
+            "whatsapp": {
+              "$ref": "#/definitions/ChannelPreference"
+            }
+          },
+          "additionalProperties": false
+        },
+        "notification_categories": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "post_created",
+              "post_matched",
+              "post_claimed",
+              "post_resolved",
+              "system_updates",
+              "promotional"
+            ]
+          },
+          "description": "Enabled notification categories"
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ChannelPreference": {
+      "type": "object",
+      "required": ["enabled"],
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Whether this channel is enabled"
+        },
+        "quiet_hours": {
+          "$ref": "value-objects.json#/definitions/QuietHours"
+        },
+        "frequency_limit": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Maximum notifications per day (0 = unlimited)"
+        },
+        "frequency": {
+          "$ref": "value-objects.json#/definitions/NotificationFrequency"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Notification": {
+      "type": "object",
+      "description": "Notification aggregate root - manages notification lifecycle",
+      "required": ["id", "user_id", "channel", "status", "title", "body", "created_at"],
+      "properties": {
+        "id": {
+          "$ref": "value-objects.json#/definitions/NotificationID"
+        },
+        "user_id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "channel": {
+          "$ref": "value-objects.json#/definitions/NotificationChannel"
+        },
+        "status": {
+          "$ref": "value-objects.json#/definitions/NotificationStatus"
+        },
+        "title": {
+          "type": "string",
+          "description": "Notification title/subject"
+        },
+        "body": {
+          "type": "string",
+          "description": "Notification content body"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "event_type": {
+              "$ref": "value-objects.json#/definitions/EventType"
+            },
+            "reference_id": {
+              "type": "string",
+              "description": "Reference to related entity"
+            },
+            "template_id": {
+              "type": "string",
+              "description": "Template used for rendering"
+            },
+            "variables": {
+              "type": "object",
+              "description": "Template variables"
+            },
+            "sender_id": {
+              "type": "string",
+              "description": "Notification sender identifier"
+            },
+            "attachment_urls": {
+              "type": "array",
+              "items": {
+                "$ref": "value-objects.json#/definitions/URL"
+              },
+              "description": "Attached file URLs"
+            }
+          }
+        },
+        "delivery_info": {
+          "type": "object",
+          "properties": {
+            "provider": {
+              "type": "string",
+              "enum": ["swoosh", "twilio", "sendgrid"],
+              "description": "Delivery provider"
+            },
+            "external_id": {
+              "type": "string",
+              "description": "Provider's message ID"
+            },
+            "recipient_info": {
+              "$ref": "value-objects.json#/definitions/ContactInfo"
+            }
+          }
+        },
+        "retry_info": {
+          "type": "object",
+          "properties": {
+            "retry_count": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Current retry attempt"
+            },
+            "max_retries": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Maximum retry attempts"
+            },
+            "next_retry_at": {
+              "allOf": [
+                { "$ref": "value-objects.json#/definitions/Timestamp" }
+              ],
+              "nullable": true
+            }
+          }
+        },
+        "scheduled_at": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timestamp" }
+          ],
+          "nullable": true,
+          "description": "Scheduled delivery time"
+        },
+        "sent_at": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timestamp" }
+          ],
+          "nullable": true
+        },
+        "delivered_at": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timestamp" }
+          ],
+          "nullable": true
+        },
+        "failed_at": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timestamp" }
+          ],
+          "nullable": true
+        },
+        "failure_reason": {
+          "type": "string",
+          "nullable": true,
+          "description": "Reason for delivery failure"
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "Organization": {
+      "type": "object",
+      "description": "Organization entity for multi-tenant support",
+      "required": ["id", "name", "status", "created_at"],
+      "properties": {
+        "id": {
+          "$ref": "value-objects.json#/definitions/OrganizationID"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Organization name"
+        },
+        "description": {
+          "type": "string",
+          "maxLength": 1000,
+          "description": "Organization description"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "deactivated"],
+          "description": "Organization status"
+        },
+        "settings": {
+          "type": "object",
+          "properties": {
+            "default_search_radius": {
+              "$ref": "value-objects.json#/definitions/SearchRadius"
+            },
+            "max_posts_per_user": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Maximum posts per user"
+            },
+            "auto_expire_days": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Days before posts auto-expire"
+            },
+            "branding": {
+              "type": "object",
+              "properties": {
+                "logo_url": {
+                  "$ref": "value-objects.json#/definitions/URL"
+                },
+                "primary_color": {
+                  "type": "string",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "description": "Primary brand color (hex)"
+                },
+                "custom_domain": {
+                  "type": "string",
+                  "format": "hostname"
+                }
+              }
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "User": {
+      "type": "object",
+      "description": "User entity (simplified view for contracts)",
+      "required": ["id", "status", "created_at"],
+      "properties": {
+        "id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "name": {
+          "type": "string",
+          "description": "User's full name"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "User's email address"
+        },
+        "phone": {
+          "type": "string",
+          "description": "User's phone number"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "deactivated"],
+          "description": "User status"
+        },
+        "profile": {
+          "type": "object",
+          "properties": {
+            "avatar_url": {
+              "$ref": "value-objects.json#/definitions/URL"
+            },
+            "timezone": {
+              "$ref": "value-objects.json#/definitions/Timezone"
+            },
+            "language": {
+              "$ref": "value-objects.json#/definitions/Language"
+            }
+          }
+        },
+        "organization_memberships": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "organization_id": {
+                "$ref": "value-objects.json#/definitions/OrganizationID"
+              },
+              "role": {
+                "$ref": "value-objects.json#/definitions/OrganizationRole"
+              },
+              "joined_at": {
+                "$ref": "value-objects.json#/definitions/Timestamp"
+              }
+            }
+          }
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}
