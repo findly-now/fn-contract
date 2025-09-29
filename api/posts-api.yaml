@@ -20,6 +20,20 @@ info:
     This service manages the complete post lifecycle from creation through resolution,
     handles photo upload and storage, provides location-based search capabilities,
     and publishes domain events for notification and matching services.
+
+    **Event Flows:**
+    All operations publish domain events to the `posts.events` Kafka topic:
+    - `post.created` - Published when a new post is created
+    - `post.updated` - Published when post details are modified
+    - `post.resolved` - Published when post status changes to resolved
+    - `post.deleted` - Published when post is deleted (soft delete)
+    - `post.photo.added` - Published when photos are added to a post
+    - `post.photo.removed` - Published when photos are removed from a post
+
+    Events consumed by:
+    - fn-notifications (for user notifications)
+    - fn-media-ai (for AI photo analysis and enhancement)
+    - fn-matcher (for automated matching between lost/found items)
   version: 1.0.0
   contact:
     name: Posts Domain Team

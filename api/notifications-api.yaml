@@ -21,6 +21,18 @@ info:
     This service is responsible solely for notification delivery and user preference
     management. It receives notification requests from external systems and handles
     the delivery pipeline, status tracking, and user communication preferences.
+
+    **Event Flows:**
+    Consumes events from multiple Kafka topics:
+    - `posts.events` - Post lifecycle events (post.created, post.updated, post.resolved, post.deleted, post.photo.added, post.photo.removed)
+    - `posts.matching` - Matching events (post.matched, post.claimed, match.expired)
+    - `users.events` - User events (user.registered, organization.staff_added, communication.opt_in)
+    - `media-ai.enrichment` - AI enhancement events (post.enhanced)
+
+    Publishes delivery events to `notifications.delivery` topic:
+    - `notification.sent` - When notification is dispatched to provider
+    - `notification.delivered` - When delivery is confirmed by provider
+    - `notification.failed` - When delivery fails permanently or temporarily
   version: 1.0.0
   contact:
     name: Notifications Team

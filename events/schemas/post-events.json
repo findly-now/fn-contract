@@ -572,5 +572,55 @@
         }
       }
     ]
+  },
+  "MatchExpired": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "match.expired"
+          },
+          "data": {
+            "type": "object",
+            "required": ["match_id", "post_id", "matched_post_id", "reporter_id", "matcher_id"],
+            "properties": {
+              "match_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Match identifier that expired"
+              },
+              "post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Original post ID"
+              },
+              "matched_post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Matched post ID"
+              },
+              "reporter_id": {
+                "type": "string",
+                "description": "Original post creator"
+              },
+              "matcher_id": {
+                "type": "string",
+                "description": "Matched post creator"
+              },
+              "expiration_reason": {
+                "type": "string",
+                "description": "Reason why the match expired"
+              },
+              "expiration_time": {
+                "type": "string",
+                "format": "date-time",
+                "description": "When the match expired"
+              }
+            }
+          }
+        }
+      }
+    ]
   }
 }

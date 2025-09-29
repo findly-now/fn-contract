@@ -44,8 +44,8 @@ servers:
       - saslScram: []
 
 channels:
-  posts.lifecycle:
-    description: Post lifecycle events from fn-posts service
+  posts.events:
+    description: Post lifecycle events from fn-posts service (unified topic for all post events)
     publish:
       summary: Posts service publishes lifecycle events
       operationId: publishPostEvent
@@ -70,7 +70,7 @@ channels:
           - $ref: '#/components/messages/PhotoRemoved'
 
   posts.matching:
-    description: Post matching and claiming events
+    description: Post matching and claiming events from fn-matcher service
     publish:
       summary: Matching service publishes match events
       operationId: publishMatchEvent
@@ -78,6 +78,7 @@ channels:
         oneOf:
           - $ref: '#/components/messages/PostMatched'
           - $ref: '#/components/messages/PostClaimed'
+          - $ref: '#/components/messages/MatchExpired'
     subscribe:
       summary: Services consume matching events
       operationId: handleMatchEvent
@@ -85,6 +86,7 @@ channels:
         oneOf:
           - $ref: '#/components/messages/PostMatched'
           - $ref: '#/components/messages/PostClaimed'
+          - $ref: '#/components/messages/MatchExpired'
 
   users.lifecycle:
     description: User and organization events
@@ -386,3 +388,27 @@ components:
                 scene_classification: "resnet-50-v1.1"
                 location_inference: "gpt-4-vision-preview"
               processing_time_ms: 2340
+
+    MatchExpired:
+      name: MatchExpired
+      title: Match Expired Event
+      summary: Published when a potential match expires without confirmation
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/MatchExpired'
+      examples:
+        - name: Match expiration
+          summary: Example of an expired match between posts
+          payload:
+            id: "expire-event-abc"
+            event_type: "match.expired"
+            timestamp: "2025-01-15T12:00:00.000Z"
+            version: 1
+            data:
+              match_id: "match-456-789"
+              post_id: "123e4567-e89b-12d3-a456-426614174000"
+              matched_post_id: "987e6543-e21c-12d3-a456-426614174000"
+              reporter_id: "user-12345"
+              matcher_id: "user-54321"
+              expiration_reason: "No response within 48 hours"
+              expiration_time: "2025-01-15T12:00:00.000Z"
