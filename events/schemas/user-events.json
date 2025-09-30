@@ -65,72 +65,152 @@
           },
           "data": {
             "type": "object",
-            "required": ["user_id"],
+            "required": ["user", "registration_source"],
             "properties": {
-              "user_id": {
-                "type": "string",
-                "description": "Unique user identifier"
-              },
-              "name": {
-                "type": "string",
-                "description": "User's full name"
-              },
-              "user_name": {
-                "type": "string",
-                "description": "Alternative field name for user's name"
-              },
-              "email": {
-                "type": "string",
-                "format": "email",
-                "description": "User's email address"
-              },
-              "phone": {
-                "type": "string",
-                "description": "User's phone number"
+              "user": {
+                "type": "object",
+                "required": ["user_id", "display_name", "preferences"],
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Unique user identifier"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 100,
+                    "description": "Privacy-safe display name (no PII)"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "User's avatar image URL",
+                    "nullable": true
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "required": ["timezone", "language", "notification_channels"],
+                    "properties": {
+                      "timezone": {
+                        "type": "string",
+                        "description": "User's timezone (IANA format)"
+                      },
+                      "language": {
+                        "type": "string",
+                        "enum": ["en", "es"],
+                        "description": "Preferred language"
+                      },
+                      "notification_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "whatsapp", "push"]
+                        },
+                        "description": "Enabled notification channels"
+                      },
+                      "notification_frequency": {
+                        "type": "string",
+                        "enum": ["immediate", "daily_digest", "weekly_digest"],
+                        "default": "immediate",
+                        "description": "Notification frequency preference"
+                      },
+                      "quiet_hours": {
+                        "type": "object",
+                        "properties": {
+                          "start": {
+                            "type": "string",
+                            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                            "description": "Quiet hours start time (HH:MM)"
+                          },
+                          "end": {
+                            "type": "string",
+                            "pattern": "^([01]?[0-9]|2[0-3]):[0-5][0-9]$",
+                            "description": "Quiet hours end time (HH:MM)"
+                          }
+                        },
+                        "nullable": true
+                      },
+                      "categories": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["post_created", "post_matched", "post_claimed", "post_resolved", "system_updates"]
+                        },
+                        "description": "Notification categories opted into"
+                      }
+                    }
+                  },
+                  "organization_context": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": {
+                        "type": "string",
+                        "format": "uuid",
+                        "description": "Organization identifier"
+                      },
+                      "organization_name": {
+                        "type": "string",
+                        "description": "Organization display name"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": ["admin", "staff", "viewer"],
+                        "description": "User role in organization"
+                      },
+                      "permissions": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "description": "User permissions"
+                      }
+                    },
+                    "nullable": true,
+                    "description": "Organization context if applicable"
+                  }
+                }
               },
               "registration_source": {
                 "type": "string",
                 "enum": ["web", "mobile", "api"],
                 "description": "Source of registration"
               },
-              "profile": {
+              "registration_metadata": {
                 "type": "object",
                 "properties": {
-                  "avatar_url": {
+                  "ip_country": {
                     "type": "string",
-                    "format": "uri",
-                    "description": "User's avatar image URL"
+                    "description": "Country derived from IP (for analytics)"
                   },
-                  "timezone": {
+                  "user_agent": {
                     "type": "string",
-                    "description": "User's timezone"
+                    "description": "User agent string (anonymized)"
                   },
-                  "language": {
+                  "referrer": {
                     "type": "string",
-                    "enum": ["en", "es"],
-                    "description": "Preferred language"
+                    "description": "Registration referrer source"
                   }
-                }
+                },
+                "description": "Registration metadata for analytics (no PII)"
               },
-              "preferences": {
+              "verification_status": {
                 "type": "object",
                 "properties": {
-                  "email_notifications": {
+                  "email_verified": {
                     "type": "boolean",
-                    "default": true,
-                    "description": "Email notification preference"
+                    "description": "Email verification status"
                   },
-                  "sms_notifications": {
+                  "phone_verified": {
                     "type": "boolean",
-                    "default": false,
-                    "description": "SMS notification preference"
+                    "description": "Phone verification status"
                   },
-                  "whatsapp_notifications": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "WhatsApp notification preference"
+                  "verification_method": {
+                    "type": "string",
+                    "enum": ["email_link", "sms_code", "oauth", "admin_approval"],
+                    "description": "Method used for verification"
                   }
-                }
+                },
+                "description": "Verification status without exposing contact details"
               }
             }
           }
@@ -148,40 +228,124 @@
           },
           "data": {
             "type": "object",
-            "required": ["user_id", "organization_id", "organization_name"],
+            "required": ["staff_user", "organization_context", "added_by_user"],
             "properties": {
-              "user_id": {
-                "type": "string",
-                "description": "Staff member user ID"
+              "staff_user": {
+                "type": "object",
+                "required": ["user_id", "display_name", "preferences"],
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Staff member user ID"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Staff member display name"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "required": ["timezone", "language", "notification_channels"],
+                    "properties": {
+                      "timezone": { "type": "string" },
+                      "language": {
+                        "type": "string",
+                        "enum": ["en", "es"]
+                      },
+                      "notification_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "whatsapp", "push"]
+                        }
+                      }
+                    }
+                  }
+                }
               },
-              "organization_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Organization identifier"
+              "organization_context": {
+                "type": "object",
+                "required": ["organization_id", "organization_name", "role"],
+                "properties": {
+                  "organization_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Organization identifier"
+                  },
+                  "organization_name": {
+                    "type": "string",
+                    "description": "Organization name"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["admin", "staff", "viewer"],
+                    "description": "Staff role in organization"
+                  },
+                  "permissions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Granted permissions"
+                  },
+                  "settings": {
+                    "type": "object",
+                    "properties": {
+                      "notification_policy": {
+                        "type": "object",
+                        "properties": {
+                          "require_approval": {
+                            "type": "boolean",
+                            "default": false
+                          },
+                          "allowed_channels": {
+                            "type": "array",
+                            "items": {
+                              "type": "string",
+                              "enum": ["email", "sms", "whatsapp", "push"]
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               },
-              "organization_name": {
-                "type": "string",
-                "description": "Organization name"
-              },
-              "role": {
-                "type": "string",
-                "enum": ["admin", "staff", "viewer"],
-                "description": "Staff role in organization"
-              },
-              "permissions": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                },
-                "description": "Granted permissions"
-              },
-              "added_by": {
-                "type": "string",
-                "description": "User who added the staff member"
+              "added_by_user": {
+                "type": "object",
+                "required": ["user_id", "display_name"],
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "User who added the staff member"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Display name of user who added staff"
+                  },
+                  "role": {
+                    "type": "string",
+                    "enum": ["admin", "staff", "viewer"],
+                    "description": "Role of user who added staff"
+                  }
+                }
               },
               "welcome_message": {
                 "type": "string",
-                "description": "Custom welcome message"
+                "description": "Custom welcome message",
+                "nullable": true
+              },
+              "onboarding_requirements": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["verify_email", "verify_phone", "complete_profile", "review_policies"]
+                },
+                "description": "Required onboarding steps for new staff member"
               }
             }
           }
@@ -255,6 +419,146 @@
                 "type": "string",
                 "enum": ["consent", "legitimate_interest", "contract"],
                 "description": "Legal basis for communication (GDPR compliance)"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "UserUpdated": {
+    "allOf": [
+      { "$ref": "#/definitions/UserEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "user.updated"
+          },
+          "data": {
+            "type": "object",
+            "required": ["user", "changed_fields"],
+            "properties": {
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUser"
+              },
+              "changed_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": ["display_name", "avatar_url", "timezone", "language", "organization_memberships", "preferences"]
+                },
+                "description": "List of fields that were updated (no PII fields allowed)"
+              },
+              "update_source": {
+                "type": "string",
+                "enum": ["user_profile", "admin_action", "system_sync", "organization_change"],
+                "description": "Source of the update"
+              },
+              "preferences_changes": {
+                "type": "object",
+                "properties": {
+                  "notification_settings": {
+                    "type": "object",
+                    "properties": {
+                      "channels_added": {
+                        "type": "array",
+                        "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                      },
+                      "channels_removed": {
+                        "type": "array",
+                        "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                      },
+                      "frequency_changed": {
+                        "type": "object",
+                        "properties": {
+                          "from": { "type": "string", "enum": ["immediate", "daily_digest", "weekly_digest"] },
+                          "to": { "type": "string", "enum": ["immediate", "daily_digest", "weekly_digest"] }
+                        }
+                      }
+                    }
+                  },
+                  "locale_changes": {
+                    "type": "object",
+                    "properties": {
+                      "timezone_changed": {
+                        "type": "object",
+                        "properties": {
+                          "from": { "type": "string" },
+                          "to": { "type": "string" }
+                        }
+                      },
+                      "language_changed": {
+                        "type": "object",
+                        "properties": {
+                          "from": { "type": "string", "enum": ["en", "es"] },
+                          "to": { "type": "string", "enum": ["en", "es"] }
+                        }
+                      }
+                    }
+                  }
+                },
+                "description": "Detailed information about preference changes"
+              },
+              "organization_changes": {
+                "type": "object",
+                "properties": {
+                  "memberships_added": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": { "type": "string", "format": "uuid" },
+                        "organization_name": { "type": "string" },
+                        "role": { "type": "string", "enum": ["admin", "staff", "viewer"] }
+                      }
+                    }
+                  },
+                  "memberships_removed": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": { "type": "string", "format": "uuid" },
+                        "organization_name": { "type": "string" },
+                        "role": { "type": "string", "enum": ["admin", "staff", "viewer"] }
+                      }
+                    }
+                  },
+                  "role_changes": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "organization_id": { "type": "string", "format": "uuid" },
+                        "organization_name": { "type": "string" },
+                        "from_role": { "type": "string", "enum": ["admin", "staff", "viewer"] },
+                        "to_role": { "type": "string", "enum": ["admin", "staff", "viewer"] }
+                      }
+                    }
+                  }
+                },
+                "description": "Organization membership changes"
+              },
+              "update_metadata": {
+                "type": "object",
+                "properties": {
+                  "updated_by": {
+                    "type": "object",
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "role": { "type": "string" },
+                      "source": { "type": "string", "enum": ["self", "admin", "system"] }
+                    }
+                  },
+                  "reason": {
+                    "type": "string",
+                    "description": "Reason for the update"
+                  },
+                  "ip_country": {
+                    "type": "string",
+                    "description": "Country from which update was made (for security)"
+                  }
+                }
               }
             }
           }

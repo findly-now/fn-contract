@@ -1,5 +1,7 @@
 # Contract Development Guide
 
+**Document Ownership**: This document OWNS contract development workflows, schema validation processes, and registry publishing procedures.
+
 **Schema management and contract governance for Findly Now microservices ecosystem**
 
 ## Quick Setup

@@ -1,5 +1,7 @@
 # fn-contract
 
+**Document Ownership**: This document OWNS API and event contract specifications, schema governance, and cross-service integration contracts.
+
 **API and event contracts for Findly Now microservices ecosystem**
 
 ## Purpose

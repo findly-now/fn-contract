@@ -1,0 +1,542 @@
+openapi: 3.0.3
+info:
+  title: fn-media-ai API
+  version: 1.0.0
+  description: |
+    REST API and service interface for AI-powered photo analysis and Lost & Found post enhancement.
+
+    **Note: This service is primarily event-driven and processes photos asynchronously through Kafka events.**
+    The REST API is limited to health checks and service information for monitoring and operations.
+
+    **Service Architecture:**
+    - Event-driven processing via Kafka consumers
+    - Automated photo analysis using multiple AI models
+    - Enhancement results published back to event streams
+    - Internal service-to-service communication only
+
+    **AI Capabilities:**
+    - Object detection (electronics, accessories, personal items)
+    - Scene classification (indoor/outdoor, location types)
+    - OCR text extraction (serial numbers, brand names)
+    - Location inference from visual cues
+
+  contact:
+    name: Findly Now Platform Team
+    url: https://github.com/findlynow/fn-media-ai
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8000
+    description: Development server
+  - url: https://api.findlynow.com/media-ai
+    description: Production server (internal only)
+
+paths:
+  /:
+    get:
+      operationId: getServiceInfo
+      summary: Get service information
+      description: |
+        Get basic service information and API discovery.
+        Provides service version, description, and documentation links.
+      responses:
+        '200':
+          description: Service information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceInfo'
+              example:
+                service: "fn-media-ai"
+                version: "0.1.0"
+                description: "AI-powered photo analysis for Lost & Found enhancement"
+                docs_url: "/docs"
+
+  /api/v1/health:
+    get:
+      operationId: healthCheck
+      summary: Basic health check
+      description: |
+        Simple health check endpoint for load balancer probes.
+        Returns basic service status without dependency checks.
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "healthy"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+                version: "0.1.0"
+                checks:
+                  api: "healthy"
+        '503':
+          description: Service is unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "unhealthy"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+                version: "0.1.0"
+                checks:
+                  api: "unhealthy"
+
+  /api/v1/health/detailed:
+    get:
+      operationId: detailedHealthCheck
+      summary: Detailed health check
+      description: |
+        Comprehensive health check including all external dependencies.
+        Checks Kafka connectivity, Google Cloud Storage, OpenAI API, and Redis.
+      responses:
+        '200':
+          description: Service and dependencies are healthy or degraded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedHealthResponse'
+              example:
+                status: "healthy"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+                version: "0.1.0"
+                uptime_seconds: 3600.5
+                checks:
+                  kafka:
+                    status: "healthy"
+                    response_time_ms: 45
+                    broker_count: 3
+                    topics: ["posts.events", "posts.enhancements"]
+                  gcs:
+                    status: "healthy"
+                    bucket_name: "findly-now-photos-prod"
+                    location: "US"
+                    storage_class: "STANDARD"
+                  openai:
+                    status: "healthy"
+                    model_count: 127
+                    configured_model: "gpt-4-vision-preview"
+                  redis:
+                    status: "healthy"
+                    ping_response: true
+        '503':
+          description: Critical dependencies are unhealthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DetailedHealthResponse'
+              example:
+                status: "unhealthy"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+                version: "0.1.0"
+                uptime_seconds: 3600.5
+                checks:
+                  kafka:
+                    status: "unhealthy"
+                    error: "Connection timeout"
+                  gcs:
+                    status: "healthy"
+                  openai:
+                    status: "degraded"
+                    error: "Rate limit warnings"
+                  redis:
+                    status: "healthy"
+
+  /api/v1/health/ready:
+    get:
+      operationId: readinessCheck
+      summary: Kubernetes readiness probe
+      description: |
+        Kubernetes readiness check to determine if service can receive traffic.
+        Validates essential dependencies are operational.
+      responses:
+        '200':
+          description: Service is ready to receive traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: "ready"
+                timestamp: "2024-01-15T14:30:00Z"
+                checks:
+                  kafka:
+                    status: "healthy"
+                    response_time_ms: 23
+                    broker_count: 3
+        '503':
+          description: Service is not ready to receive traffic
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReadinessResponse'
+              example:
+                status: "not_ready"
+                timestamp: "2024-01-15T14:30:00Z"
+                checks:
+                  kafka:
+                    status: "unhealthy"
+                    error: "Broker connection failed"
+
+  /api/v1/health/live:
+    get:
+      operationId: livenessCheck
+      summary: Kubernetes liveness probe
+      description: |
+        Kubernetes liveness check to determine if service should be restarted.
+        Basic service process health without external dependencies.
+      responses:
+        '200':
+          description: Service is running normally
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+              example:
+                status: "alive"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+        '503':
+          description: Service should be restarted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LivenessResponse'
+              example:
+                status: "unhealthy"
+                timestamp: "2024-01-15T14:30:00Z"
+                service: "fn-media-ai"
+
+  /docs:
+    get:
+      operationId: getApiDocs
+      summary: Interactive API documentation
+      description: |
+        Swagger/OpenAPI interactive documentation interface.
+        Only available in development mode when DEBUG=true.
+      responses:
+        '200':
+          description: HTML documentation page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Documentation not available in production
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /redoc:
+    get:
+      operationId: getReDoc
+      summary: ReDoc API documentation
+      description: |
+        Alternative API documentation interface using ReDoc.
+        Only available in development mode when DEBUG=true.
+      responses:
+        '200':
+          description: HTML ReDoc documentation page
+          content:
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: Documentation not available in production
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    ServiceInfo:
+      type: object
+      required:
+        - service
+        - version
+        - description
+        - docs_url
+      properties:
+        service:
+          type: string
+          description: Service name
+          example: "fn-media-ai"
+        version:
+          type: string
+          description: Service version
+          example: "0.1.0"
+        description:
+          type: string
+          description: Service description
+          example: "AI-powered photo analysis for Lost & Found enhancement"
+        docs_url:
+          type: string
+          description: API documentation URL
+          example: "/docs"
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - service
+        - version
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+        service:
+          type: string
+          description: Service name
+        version:
+          type: string
+          description: Service version
+        checks:
+          type: object
+          description: Component health checks
+          properties:
+            api:
+              type: string
+              enum: [healthy, unhealthy]
+              description: API component status
+
+    DetailedHealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - service
+        - version
+        - uptime_seconds
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Overall health status
+        timestamp:
+          type: string
+          format: date-time
+          description: Health check timestamp
+        service:
+          type: string
+          description: Service name
+        version:
+          type: string
+          description: Service version
+        uptime_seconds:
+          type: number
+          description: Service uptime in seconds
+        checks:
+          type: object
+          description: Detailed dependency checks
+          properties:
+            kafka:
+              $ref: '#/components/schemas/KafkaHealthCheck'
+            gcs:
+              $ref: '#/components/schemas/GCSHealthCheck'
+            openai:
+              $ref: '#/components/schemas/OpenAIHealthCheck'
+            redis:
+              $ref: '#/components/schemas/RedisHealthCheck'
+
+    KafkaHealthCheck:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Kafka connection status
+        response_time_ms:
+          type: number
+          description: Connection response time
+        broker_count:
+          type: integer
+          description: Number of available brokers
+        topics:
+          type: array
+          items:
+            type: string
+          description: Available topics
+        error:
+          type: string
+          description: Error message if unhealthy
+
+    GCSHealthCheck:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Google Cloud Storage status
+        bucket_name:
+          type: string
+          description: Storage bucket name
+        location:
+          type: string
+          description: Bucket location
+        storage_class:
+          type: string
+          description: Storage class
+        error:
+          type: string
+          description: Error message if unhealthy
+
+    OpenAIHealthCheck:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: OpenAI API status
+        model_count:
+          type: integer
+          description: Number of available models
+        configured_model:
+          type: string
+          description: Primary model being used
+        error:
+          type: string
+          description: Error message if unhealthy
+
+    RedisHealthCheck:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          description: Redis connection status
+        ping_response:
+          type: boolean
+          description: Redis ping response
+        error:
+          type: string
+          description: Error message if unhealthy
+
+    ReadinessResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - checks
+      properties:
+        status:
+          type: string
+          enum: [ready, not_ready]
+          description: Service readiness status
+        timestamp:
+          type: string
+          format: date-time
+          description: Readiness check timestamp
+        checks:
+          type: object
+          description: Essential service checks
+          properties:
+            kafka:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, unhealthy]
+                response_time_ms:
+                  type: number
+                broker_count:
+                  type: integer
+                error:
+                  type: string
+
+    LivenessResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - service
+      properties:
+        status:
+          type: string
+          enum: [alive, unhealthy]
+          description: Service liveness status
+        timestamp:
+          type: string
+          format: date-time
+          description: Liveness check timestamp
+        service:
+          type: string
+          description: Service name
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+            - timestamp
+          properties:
+            code:
+              type: string
+              description: Error code
+            message:
+              type: string
+              description: Human-readable error message
+            details:
+              type: object
+              description: Additional error details
+              additionalProperties: true
+            timestamp:
+              type: string
+              format: date-time
+              description: Error timestamp
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "NOT_FOUND"
+              message: "The requested resource was not found"
+              timestamp: "2024-01-15T14:30:00Z"
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: "INTERNAL_ERROR"
+              message: "Unexpected server error"
+              timestamp: "2024-01-15T14:30:00Z"

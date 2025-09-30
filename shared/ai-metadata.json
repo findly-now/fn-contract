@@ -1,0 +1,368 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/ai-metadata.json",
+  "title": "AI Metadata Structures",
+  "description": "AI processing metadata structures for fat events in the Lost & Found platform",
+  "definitions": {
+    "AIMetadata": {
+      "type": "object",
+      "description": "AI processing metadata for enhanced posts",
+      "required": ["processing_triggered"],
+      "properties": {
+        "processing_triggered": {
+          "type": "boolean",
+          "description": "Whether AI processing was triggered"
+        },
+        "processing_status": {
+          "type": "string",
+          "enum": ["pending", "processing", "completed", "failed"],
+          "nullable": true,
+          "description": "Current AI processing status"
+        },
+        "confidence_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "nullable": true,
+          "description": "Overall AI confidence score"
+        },
+        "tags": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/AITag" },
+          "description": "AI-generated tags"
+        },
+        "objects": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/DetectedObject" },
+          "description": "Detected objects in images"
+        },
+        "colors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ColorAnalysis" },
+          "description": "Color analysis results"
+        },
+        "scene": {
+          "$ref": "#/definitions/SceneAnalysis",
+          "nullable": true
+        },
+        "text_content": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExtractedText" },
+          "description": "Extracted text from images"
+        },
+        "location_inference": {
+          "$ref": "#/definitions/LocationInference",
+          "nullable": true
+        },
+        "processing_metrics": {
+          "$ref": "#/definitions/ProcessingMetrics",
+          "nullable": true
+        },
+        "model_versions": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "description": "AI model versions used"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AITag": {
+      "type": "object",
+      "required": ["tag", "confidence", "source"],
+      "properties": {
+        "tag": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "source": {
+          "type": "string",
+          "enum": ["object_detection", "scene_analysis", "text_extraction", "color_analysis"]
+        },
+        "category": {
+          "type": "string",
+          "enum": ["object", "color", "brand", "scene", "text", "material", "size"],
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "DetectedObject": {
+      "type": "object",
+      "required": ["name", "confidence"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bounding_box": {
+          "$ref": "#/definitions/BoundingBox",
+          "nullable": true
+        },
+        "attributes": {
+          "type": "object",
+          "additionalProperties": { "type": "string" },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "BoundingBox": {
+      "type": "object",
+      "required": ["x", "y", "width", "height"],
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "width": { "type": "number" },
+        "height": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "ColorAnalysis": {
+      "type": "object",
+      "required": ["color_name", "confidence", "dominant"],
+      "properties": {
+        "color_name": {
+          "type": "string"
+        },
+        "hex_code": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "nullable": true
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "dominant": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": false
+    },
+    "SceneAnalysis": {
+      "type": "object",
+      "required": ["primary_scene", "confidence"],
+      "properties": {
+        "primary_scene": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "sub_scenes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ExtractedText": {
+      "type": "object",
+      "required": ["text", "confidence"],
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "bounding_box": {
+          "$ref": "#/definitions/BoundingBox",
+          "nullable": true
+        },
+        "language": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "LocationInference": {
+      "type": "object",
+      "required": ["latitude", "longitude", "source", "confidence"],
+      "properties": {
+        "latitude": {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        "longitude": {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        },
+        "source": {
+          "type": "string",
+          "enum": ["exif", "ai_inference", "landmark_detection"]
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "landmark_name": {
+          "type": "string",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ProcessingMetrics": {
+      "type": "object",
+      "required": ["total_processing_time_ms", "started_at", "completed_at"],
+      "properties": {
+        "total_processing_time_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "started_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "completed_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "stage_timings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "nullable": true
+        },
+        "resource_usage": {
+          "$ref": "#/definitions/ResourceUsage",
+          "nullable": true
+        },
+        "quality_indicators": {
+          "$ref": "#/definitions/QualityIndicators",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ResourceUsage": {
+      "type": "object",
+      "properties": {
+        "cpu_time_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "nullable": true
+        },
+        "memory_peak_mb": {
+          "type": "number",
+          "minimum": 0,
+          "nullable": true
+        },
+        "gpu_time_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "QualityIndicators": {
+      "type": "object",
+      "properties": {
+        "image_quality": {
+          "$ref": "#/definitions/ImageQuality",
+          "nullable": true
+        },
+        "analysis_reliability": {
+          "$ref": "#/definitions/AnalysisReliability",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ImageQuality": {
+      "type": "object",
+      "required": ["resolution_score", "brightness_score", "clarity_score", "overall_score"],
+      "properties": {
+        "resolution_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "brightness_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "clarity_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "overall_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "AnalysisReliability": {
+      "type": "object",
+      "required": ["detection_consistency", "confidence_distribution", "cross_validation_score"],
+      "properties": {
+        "detection_consistency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "confidence_distribution": {
+          "type": "string",
+          "enum": ["concentrated", "distributed", "low"]
+        },
+        "cross_validation_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "EventTriggers": {
+      "type": "object",
+      "description": "Specifies downstream processing triggers for events",
+      "properties": {
+        "ai_processing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trigger AI processing"
+        },
+        "match_processing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trigger match processing"
+        },
+        "reindexing": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trigger search reindexing"
+        },
+        "notifications": {
+          "type": "boolean",
+          "default": false,
+          "description": "Trigger notifications"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,5 +1,7 @@
 # Avro Schemas for Event Serialization
 
+**Document Ownership**: This document OWNS Avro schema specifications, serialization formats, and Kafka message contracts.
+
 This directory contains Avro schemas for binary event serialization in the Findly Now ecosystem.
 
 ## Purpose

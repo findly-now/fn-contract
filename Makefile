@@ -3,7 +3,7 @@
 # Schema validation, documentation generation, and contract testing
 # for API and event contracts across the microservices ecosystem.
 
-.PHONY: help validate validate-api validate-events validate-schemas docs clean install
+.PHONY: help validate validate-api validate-events validate-schemas validate-privacy docs clean install
 
 # Default target
 help:
@@ -11,7 +11,8 @@ help:
 	@echo "=============================="
 	@echo ""
 	@echo "Available targets:"
-	@echo "  validate           - Validate all contracts and schemas"
+	@echo "  validate           - Validate all contracts and schemas (includes privacy)"
+	@echo "  validate-privacy   - 🔒 Check for PII violations (CRITICAL)"
 	@echo "  validate-api       - Validate OpenAPI specifications"
 	@echo "  validate-events    - Validate AsyncAPI specifications"
 	@echo "  validate-schemas   - Validate JSON schemas"
@@ -31,8 +32,13 @@ install:
 	@echo "Dependencies installed successfully"
 
 # Validate all contracts and schemas
-validate: validate-api validate-events validate-schemas
+validate: validate-privacy validate-api validate-events validate-schemas
 	@echo "✅ All contracts and schemas are valid"
+
+# 🔒 CRITICAL: Privacy validation - NO PII in events
+validate-privacy:
+	@echo "🔒 Validating privacy compliance (NO PII)..."
+	@./scripts/validate-privacy.sh
 
 # Validate OpenAPI specifications
 validate-api:

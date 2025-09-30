@@ -220,9 +220,24 @@
           },
           "data": {
             "type": "object",
-            "required": ["post"],
+            "required": ["post", "user"],
             "properties": {
-              "post": { "$ref": "#/definitions/Post" }
+              "post": { "$ref": "#/definitions/Post" },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
+              },
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
+              },
+              "ai_analysis": {
+                "$ref": "../../shared/ai-metadata.json#/definitions/AIMetadata",
+                "nullable": true
+              },
+              "triggers": {
+                "$ref": "../../shared/ai-metadata.json#/definitions/EventTriggers",
+                "nullable": true
+              }
             }
           }
         }
@@ -239,9 +254,16 @@
           },
           "data": {
             "type": "object",
-            "required": ["post", "changes", "previous"],
+            "required": ["post", "user", "changes", "previous"],
             "properties": {
               "post": { "$ref": "#/definitions/Post" },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
+              },
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
+              },
               "changes": {
                 "type": "object",
                 "description": "Fields that were changed"
@@ -249,6 +271,15 @@
               "previous": {
                 "type": "object",
                 "description": "Previous values of changed fields"
+              },
+              "update_reason": {
+                "type": "string",
+                "nullable": true,
+                "description": "Reason for the update"
+              },
+              "triggers": {
+                "$ref": "../../shared/ai-metadata.json#/definitions/EventTriggers",
+                "nullable": true
               }
             }
           }
@@ -266,11 +297,15 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "new_status", "previous_status"],
+            "required": ["post", "user", "new_status", "previous_status"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid"
+              "post": { "$ref": "#/definitions/Post" },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
+              },
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
               },
               "new_status": {
                 "const": "resolved"
@@ -281,7 +316,17 @@
               },
               "reason": {
                 "type": "string",
+                "nullable": true,
                 "description": "Reason for resolution"
+              },
+              "resolved_by": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended",
+                "nullable": true,
+                "description": "User who resolved the post (if different from post owner)"
+              },
+              "resolution_data": {
+                "$ref": "#/definitions/ResolutionData",
+                "nullable": true
               }
             }
           }
@@ -299,11 +344,15 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "new_status", "previous_status"],
+            "required": ["post", "user", "new_status", "previous_status"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid"
+              "post": { "$ref": "#/definitions/Post" },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
+              },
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
               },
               "new_status": {
                 "const": "deleted"
@@ -311,6 +360,11 @@
               "previous_status": {
                 "type": "string",
                 "enum": ["active", "resolved", "expired"]
+              },
+              "deletion_reason": {
+                "type": "string",
+                "nullable": true,
+                "description": "Reason for deletion"
               }
             }
           }
@@ -328,13 +382,38 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "photo"],
+            "required": ["post", "photo", "user"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid"
+              "post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete post data with updated photos array"
               },
-              "photo": { "$ref": "#/definitions/Photo" }
+              "photo": {
+                "$ref": "#/definitions/Photo",
+                "description": "New photo that was added"
+              },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
+              },
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
+              },
+              "ai_processing_trigger": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this photo addition should trigger AI enhancement"
+              },
+              "processing_priority": {
+                "type": "string",
+                "enum": ["low", "normal", "high"],
+                "nullable": true,
+                "description": "AI processing priority"
+              },
+              "triggers": {
+                "$ref": "../../shared/ai-metadata.json#/definitions/EventTriggers",
+                "nullable": true
+              }
             }
           }
         }
@@ -351,13 +430,26 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "photo"],
+            "required": ["post", "photo", "user"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid"
+              "post": { "$ref": "#/definitions/Post" },
+              "photo": { "$ref": "#/definitions/Photo" },
+              "user": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUserExtended"
               },
-              "photo": { "$ref": "#/definitions/Photo" }
+              "organization": {
+                "$ref": "../../shared/domains.json#/definitions/OrganizationData",
+                "nullable": true
+              },
+              "removal_reason": {
+                "type": "string",
+                "nullable": true,
+                "description": "Reason for photo removal"
+              },
+              "triggers": {
+                "$ref": "../../shared/ai-metadata.json#/definitions/EventTriggers",
+                "nullable": true
+              }
             }
           }
         }
@@ -374,39 +466,211 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "matched_post_id", "reporter_id", "matcher_id"],
+            "required": ["original_post", "matched_post", "match_analysis", "involved_users"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Original post ID"
+              "original_post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete original post data"
               },
-              "matched_post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Matched post ID"
+              "matched_post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete matched post data"
               },
-              "reporter_id": {
-                "type": "string",
-                "description": "Original post creator"
-              },
-              "matcher_id": {
-                "type": "string",
-                "description": "Matched post creator"
-              },
-              "confidence_score": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Match confidence (0-1)"
-              },
-              "match_reason": {
-                "type": "string",
-                "description": "Reason for the match"
-              },
-              "match_metadata": {
+              "match_analysis": {
                 "type": "object",
-                "description": "Additional matching metadata"
+                "required": ["confidence_score", "match_reason", "algorithm_version"],
+                "properties": {
+                  "confidence_score": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Overall match confidence (0-1)"
+                  },
+                  "match_reason": {
+                    "type": "string",
+                    "enum": ["location_proximity", "visual_similarity", "text_similarity", "temporal_correlation", "hybrid_analysis"],
+                    "description": "Primary reason for the match"
+                  },
+                  "algorithm_version": {
+                    "type": "string",
+                    "description": "Matching algorithm version for traceability"
+                  },
+                  "detailed_scores": {
+                    "type": "object",
+                    "properties": {
+                      "location_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Location similarity score"
+                      },
+                      "visual_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Visual similarity score from AI"
+                      },
+                      "text_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Text similarity score"
+                      },
+                      "temporal_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Time correlation score"
+                      }
+                    },
+                    "description": "Detailed scoring breakdown"
+                  },
+                  "match_features": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "feature_type": {
+                          "type": "string",
+                          "enum": ["object_detection", "color_analysis", "text_extraction", "location_data", "timestamp_analysis"]
+                        },
+                        "similarity_score": {
+                          "type": "number",
+                          "minimum": 0,
+                          "maximum": 1
+                        },
+                        "feature_data": {
+                          "type": "object",
+                          "description": "Feature-specific matching data"
+                        }
+                      }
+                    },
+                    "description": "Individual feature matching results"
+                  },
+                  "distance_meters": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Distance between posts in meters"
+                  },
+                  "time_difference_hours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "Time difference between posts in hours"
+                  }
+                },
+                "description": "Comprehensive match analysis data"
+              },
+              "involved_users": {
+                "type": "object",
+                "required": ["original_poster", "matched_poster"],
+                "properties": {
+                  "original_poster": {
+                    "type": "object",
+                    "required": ["user_id", "display_name", "preferences"],
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "display_name": { "type": "string" },
+                      "avatar_url": { "type": "string", "format": "uri", "nullable": true },
+                      "preferences": {
+                        "type": "object",
+                        "required": ["timezone", "language", "notification_channels"],
+                        "properties": {
+                          "timezone": { "type": "string" },
+                          "language": { "type": "string", "enum": ["en", "es"] },
+                          "notification_channels": {
+                            "type": "array",
+                            "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                          },
+                          "quiet_hours": {
+                            "type": "object",
+                            "properties": {
+                              "start": { "type": "string" },
+                              "end": { "type": "string" }
+                            },
+                            "nullable": true
+                          }
+                        }
+                      },
+                      "organization_context": {
+                        "type": "object",
+                        "properties": {
+                          "organization_id": { "type": "string", "format": "uuid" },
+                          "organization_name": { "type": "string" },
+                          "role": { "type": "string", "enum": ["admin", "staff", "viewer"] }
+                        },
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "matched_poster": {
+                    "type": "object",
+                    "required": ["user_id", "display_name", "preferences"],
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "display_name": { "type": "string" },
+                      "avatar_url": { "type": "string", "format": "uri", "nullable": true },
+                      "preferences": {
+                        "type": "object",
+                        "required": ["timezone", "language", "notification_channels"],
+                        "properties": {
+                          "timezone": { "type": "string" },
+                          "language": { "type": "string", "enum": ["en", "es"] },
+                          "notification_channels": {
+                            "type": "array",
+                            "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                          },
+                          "quiet_hours": {
+                            "type": "object",
+                            "properties": {
+                              "start": { "type": "string" },
+                              "end": { "type": "string" }
+                            },
+                            "nullable": true
+                          }
+                        }
+                      },
+                      "organization_context": {
+                        "type": "object",
+                        "properties": {
+                          "organization_id": { "type": "string", "format": "uuid" },
+                          "organization_name": { "type": "string" },
+                          "role": { "type": "string", "enum": ["admin", "staff", "viewer"] }
+                        },
+                        "nullable": true
+                      }
+                    }
+                  }
+                },
+                "description": "Privacy-safe user contexts for both involved users"
+              },
+              "notification_requirements": {
+                "type": "object",
+                "properties": {
+                  "immediate_notification": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether to send immediate notifications"
+                  },
+                  "notification_templates": {
+                    "type": "object",
+                    "properties": {
+                      "original_poster_template": { "type": "string" },
+                      "matched_poster_template": { "type": "string" }
+                    }
+                  },
+                  "follow_up_schedule": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "delay_hours": { "type": "integer", "minimum": 1 },
+                        "template": { "type": "string" },
+                        "condition": { "type": "string", "enum": ["no_response", "no_claim", "no_contact_exchange"] }
+                      }
+                    }
+                  }
+                },
+                "description": "Notification requirements for downstream processing"
               }
             }
           }
@@ -424,37 +688,252 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "reporter_id", "claimer_id"],
+            "required": ["post", "post_owner", "claimer", "contact_exchange_request"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Post being claimed"
-              },
-              "reporter_id": {
-                "type": "string",
-                "description": "Original post creator"
-              },
-              "claimer_id": {
-                "type": "string",
-                "description": "Person claiming the item"
-              },
-              "claim_message": {
-                "type": "string",
-                "description": "Message from claimer"
-              },
-              "contact_info": {
+              "post": {
                 "type": "object",
+                "required": ["id", "title", "type", "status", "location"],
                 "properties": {
-                  "email": {
+                  "id": {
                     "type": "string",
-                    "format": "email"
+                    "format": "uuid",
+                    "description": "Post identifier"
                   },
-                  "phone": {
-                    "type": "string"
+                  "title": {
+                    "type": "string",
+                    "description": "Post title"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Post description",
+                    "nullable": true
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": ["lost", "found"],
+                    "description": "Post type"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["active", "resolved", "expired", "deleted"],
+                    "description": "Current status"
+                  },
+                  "location": {
+                    "type": "object",
+                    "required": ["latitude", "longitude"],
+                    "properties": {
+                      "latitude": { "type": "number" },
+                      "longitude": { "type": "number" },
+                      "address": {
+                        "type": "string",
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "photos": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": { "type": "string", "format": "uuid" },
+                        "original_url": { "type": "string", "format": "uri" },
+                        "thumbnail_url": { "type": "string", "format": "uri", "nullable": true }
+                      }
+                    }
+                  },
+                  "organization_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time"
                   }
                 },
-                "description": "Claimer contact information"
+                "description": "Complete post context for processing"
+              },
+              "post_owner": {
+                "type": "object",
+                "required": ["user_id", "display_name", "preferences"],
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Post owner user ID"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Post owner display name"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "required": ["timezone", "language", "notification_channels"],
+                    "properties": {
+                      "timezone": { "type": "string" },
+                      "language": {
+                        "type": "string",
+                        "enum": ["en", "es"]
+                      },
+                      "notification_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "whatsapp", "push"]
+                        }
+                      },
+                      "quiet_hours": {
+                        "type": "object",
+                        "properties": {
+                          "start": { "type": "string" },
+                          "end": { "type": "string" }
+                        },
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "organization_context": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": { "type": "string", "format": "uuid" },
+                      "organization_name": { "type": "string" },
+                      "role": {
+                        "type": "string",
+                        "enum": ["admin", "staff", "viewer"]
+                      }
+                    },
+                    "nullable": true
+                  }
+                },
+                "description": "Post owner privacy-safe context"
+              },
+              "claimer": {
+                "type": "object",
+                "required": ["user_id", "display_name", "preferences"],
+                "properties": {
+                  "user_id": {
+                    "type": "string",
+                    "description": "Claimer user ID"
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "description": "Claimer display name"
+                  },
+                  "avatar_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "nullable": true
+                  },
+                  "preferences": {
+                    "type": "object",
+                    "required": ["timezone", "language", "notification_channels"],
+                    "properties": {
+                      "timezone": { "type": "string" },
+                      "language": {
+                        "type": "string",
+                        "enum": ["en", "es"]
+                      },
+                      "notification_channels": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["email", "sms", "whatsapp", "push"]
+                        }
+                      }
+                    }
+                  },
+                  "organization_context": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": { "type": "string", "format": "uuid" },
+                      "organization_name": { "type": "string" },
+                      "role": {
+                        "type": "string",
+                        "enum": ["admin", "staff", "viewer"]
+                      }
+                    },
+                    "nullable": true
+                  }
+                },
+                "description": "Claimer privacy-safe context"
+              },
+              "contact_exchange_request": {
+                "type": "object",
+                "required": ["request_id", "status", "expires_at"],
+                "properties": {
+                  "request_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "description": "Contact exchange request identifier"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": ["pending", "approved", "denied", "expired"],
+                    "description": "Request status"
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "Message from claimer",
+                    "nullable": true
+                  },
+                  "verification_required": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether verification is required"
+                  },
+                  "verification_details": {
+                    "type": "object",
+                    "properties": {
+                      "method": {
+                        "type": "string",
+                        "enum": ["photo_proof", "security_question", "admin_approval"]
+                      },
+                      "question": {
+                        "type": "string",
+                        "description": "Security question if applicable"
+                      }
+                    },
+                    "nullable": true
+                  },
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the request expires"
+                  },
+                  "created_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When request was created"
+                  }
+                },
+                "description": "Secure contact exchange request details"
+              },
+              "claim_metadata": {
+                "type": "object",
+                "properties": {
+                  "claim_reason": {
+                    "type": "string",
+                    "enum": ["owner_recognition", "item_match", "witness_report", "other"],
+                    "description": "Reason for claiming"
+                  },
+                  "confidence_level": {
+                    "type": "string",
+                    "enum": ["high", "medium", "low"],
+                    "description": "Claimer's confidence level"
+                  },
+                  "additional_info": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "Additional information provided",
+                    "nullable": true
+                  }
+                },
+                "description": "Claim metadata for verification"
               }
             }
           }
@@ -472,32 +951,504 @@
           },
           "data": {
             "type": "object",
-            "required": ["post_id", "enhanced_metadata", "ai_confidence"],
+            "required": ["original_post", "post_owner", "enhanced_metadata", "ai_analysis"],
             "properties": {
-              "post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Post being enhanced"
+              "original_post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete original post data before enhancement"
+              },
+              "post_owner": {
+                "type": "object",
+                "required": ["user_id", "display_name", "preferences"],
+                "properties": {
+                  "user_id": { "type": "string" },
+                  "display_name": { "type": "string" },
+                  "avatar_url": { "type": "string", "format": "uri", "nullable": true },
+                  "preferences": {
+                    "type": "object",
+                    "required": ["timezone", "language", "notification_channels"],
+                    "properties": {
+                      "timezone": { "type": "string" },
+                      "language": { "type": "string", "enum": ["en", "es"] },
+                      "notification_channels": {
+                        "type": "array",
+                        "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                      },
+                      "quiet_hours": {
+                        "type": "object",
+                        "properties": {
+                          "start": { "type": "string" },
+                          "end": { "type": "string" }
+                        },
+                        "nullable": true
+                      }
+                    }
+                  },
+                  "organization_context": {
+                    "type": "object",
+                    "properties": {
+                      "organization_id": { "type": "string", "format": "uuid" },
+                      "organization_name": { "type": "string" },
+                      "role": { "type": "string", "enum": ["admin", "staff", "viewer"] },
+                      "settings": {
+                        "type": "object",
+                        "properties": {
+                          "ai_enhancement_policy": {
+                            "type": "object",
+                            "properties": {
+                              "auto_enhance": { "type": "boolean", "default": true },
+                              "quality_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+                              "notify_on_enhancement": { "type": "boolean", "default": true }
+                            }
+                          }
+                        }
+                      }
+                    },
+                    "nullable": true
+                  }
+                },
+                "description": "Post owner privacy-safe context"
               },
               "enhanced_metadata": {
                 "type": "object",
-                "required": ["tags", "attributes"],
+                "required": ["tags", "attributes", "enhancement_summary"],
                 "properties": {
                   "enhanced_description": {
                     "type": "string",
-                    "description": "AI-generated enhanced description"
+                    "description": "AI-generated enhanced description",
+                    "nullable": true
                   },
                   "tags": {
                     "type": "array",
                     "items": {
-                      "type": "string"
+                      "type": "object",
+                      "required": ["tag", "confidence", "source"],
+                      "properties": {
+                        "tag": { "type": "string" },
+                        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                        "source": { "type": "string", "enum": ["object_detection", "scene_analysis", "text_extraction", "color_analysis"] },
+                        "category": { "type": "string", "enum": ["object", "color", "brand", "scene", "text", "material", "size"] }
+                      }
                     },
-                    "description": "AI-extracted tags (object, color, brand, etc.)"
+                    "description": "AI-extracted tags with confidence and source tracking"
                   },
                   "attributes": {
                     "type": "object",
                     "properties": {
                       "objects": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["name", "confidence"],
+                          "properties": {
+                            "name": { "type": "string" },
+                            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "bounding_box": {
+                              "type": "object",
+                              "properties": {
+                                "x": { "type": "number" },
+                                "y": { "type": "number" },
+                                "width": { "type": "number" },
+                                "height": { "type": "number" }
+                              }
+                            },
+                            "attributes": {
+                              "type": "object",
+                              "properties": {
+                                "color": { "type": "string" },
+                                "size": { "type": "string", "enum": ["small", "medium", "large"] },
+                                "material": { "type": "string" },
+                                "brand": { "type": "string" },
+                                "condition": { "type": "string", "enum": ["new", "good", "worn", "damaged"] }
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "colors": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["color_name", "confidence"],
+                          "properties": {
+                            "color_name": { "type": "string" },
+                            "hex_code": { "type": "string", "pattern": "^#[0-9A-Fa-f]{6}$" },
+                            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "dominant": { "type": "boolean", "default": false }
+                          }
+                        }
+                      },
+                      "scene": {
+                        "type": "object",
+                        "properties": {
+                          "primary_scene": { "type": "string" },
+                          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "sub_scenes": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                          }
+                        }
+                      },
+                      "text_content": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "required": ["text", "confidence"],
+                          "properties": {
+                            "text": { "type": "string" },
+                            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                            "bounding_box": {
+                              "type": "object",
+                              "properties": {
+                                "x": { "type": "number" },
+                                "y": { "type": "number" },
+                                "width": { "type": "number" },
+                                "height": { "type": "number" }
+                              }
+                            },
+                            "language": { "type": "string" }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "location_inference": {
+                    "type": "object",
+                    "nullable": true,
+                    "properties": {
+                      "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+                      "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
+                      "source": {
+                        "type": "string",
+                        "enum": ["exif", "ai_inference", "landmark_detection"]
+                      },
+                      "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                      "landmark_name": { "type": "string", "nullable": true }
+                    }
+                  },
+                  "enhancement_summary": {
+                    "type": "object",
+                    "required": ["changes_made", "improvement_areas"],
+                    "properties": {
+                      "changes_made": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["added_tags", "enhanced_description", "detected_objects", "extracted_text", "inferred_location", "color_analysis"]
+                        }
+                      },
+                      "improvement_areas": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": ["searchability", "matchability", "description_quality", "location_accuracy", "categorization"]
+                        }
+                      },
+                      "quality_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Overall enhancement quality score"
+                      }
+                    }
+                  }
+                }
+              },
+              "ai_analysis": {
+                "type": "object",
+                "required": ["overall_confidence", "model_versions", "processing_metrics"],
+                "properties": {
+                  "overall_confidence": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1,
+                    "description": "Overall AI analysis confidence score"
+                  },
+                  "model_versions": {
+                    "type": "object",
+                    "required": ["object_detection", "scene_classification", "ocr"],
+                    "properties": {
+                      "object_detection": { "type": "string" },
+                      "scene_classification": { "type": "string" },
+                      "ocr": { "type": "string" },
+                      "location_inference": { "type": "string", "nullable": true },
+                      "color_analysis": { "type": "string" }
+                    },
+                    "description": "AI model versions used for traceability"
+                  },
+                  "processing_metrics": {
+                    "type": "object",
+                    "required": ["total_processing_time_ms", "started_at", "completed_at"],
+                    "properties": {
+                      "total_processing_time_ms": {
+                        "type": "integer",
+                        "minimum": 0,
+                        "description": "Total processing time in milliseconds"
+                      },
+                      "started_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When AI processing started"
+                      },
+                      "completed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "When AI processing completed"
+                      },
+                      "stage_timings": {
+                        "type": "object",
+                        "properties": {
+                          "object_detection_ms": { "type": "integer", "minimum": 0 },
+                          "scene_analysis_ms": { "type": "integer", "minimum": 0 },
+                          "ocr_processing_ms": { "type": "integer", "minimum": 0 },
+                          "color_analysis_ms": { "type": "integer", "minimum": 0 },
+                          "location_inference_ms": { "type": "integer", "minimum": 0 }
+                        }
+                      },
+                      "resource_usage": {
+                        "type": "object",
+                        "properties": {
+                          "cpu_time_ms": { "type": "integer", "minimum": 0 },
+                          "memory_peak_mb": { "type": "number", "minimum": 0 },
+                          "gpu_time_ms": { "type": "integer", "minimum": 0 }
+                        }
+                      }
+                    }
+                  },
+                  "quality_indicators": {
+                    "type": "object",
+                    "properties": {
+                      "image_quality": {
+                        "type": "object",
+                        "properties": {
+                          "resolution_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "brightness_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "clarity_score": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "overall_score": { "type": "number", "minimum": 0, "maximum": 1 }
+                        }
+                      },
+                      "analysis_reliability": {
+                        "type": "object",
+                        "properties": {
+                          "detection_consistency": { "type": "number", "minimum": 0, "maximum": 1 },
+                          "confidence_distribution": { "type": "string", "enum": ["concentrated", "distributed", "low"] },
+                          "cross_validation_score": { "type": "number", "minimum": 0, "maximum": 1 }
+                        }
+                      }
+                    }
+                  }
+                },
+                "description": "Comprehensive AI analysis data and metrics"
+              },
+              "downstream_actions": {
+                "type": "object",
+                "properties": {
+                  "reindex_required": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether search index needs updating"
+                  },
+                  "matching_update_required": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether matching algorithms should re-evaluate"
+                  },
+                  "notification_policy": {
+                    "type": "object",
+                    "properties": {
+                      "notify_user": {
+                        "type": "boolean",
+                        "description": "Whether to notify user of enhancement"
+                      },
+                      "significant_changes": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "List of significant changes to highlight"
+                      }
+                    }
+                  }
+                },
+                "description": "Actions required by downstream services"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "MatchExpired": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "match.expired"
+          },
+          "data": {
+            "type": "object",
+            "required": ["match_id", "original_post", "matched_post", "involved_users", "expiration_details"],
+            "properties": {
+              "match_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Match identifier that expired"
+              },
+              "original_post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete original post data"
+              },
+              "matched_post": {
+                "$ref": "#/definitions/Post",
+                "description": "Complete matched post data"
+              },
+              "involved_users": {
+                "type": "object",
+                "required": ["original_poster", "matched_poster"],
+                "properties": {
+                  "original_poster": {
+                    "type": "object",
+                    "required": ["user_id", "display_name", "preferences"],
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "display_name": { "type": "string" },
+                      "preferences": {
+                        "type": "object",
+                        "required": ["timezone", "language", "notification_channels"],
+                        "properties": {
+                          "timezone": { "type": "string" },
+                          "language": { "type": "string", "enum": ["en", "es"] },
+                          "notification_channels": {
+                            "type": "array",
+                            "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                          }
+                        }
+                      }
+                    }
+                  },
+                  "matched_poster": {
+                    "type": "object",
+                    "required": ["user_id", "display_name", "preferences"],
+                    "properties": {
+                      "user_id": { "type": "string" },
+                      "display_name": { "type": "string" },
+                      "preferences": {
+                        "type": "object",
+                        "required": ["timezone", "language", "notification_channels"],
+                        "properties": {
+                          "timezone": { "type": "string" },
+                          "language": { "type": "string", "enum": ["en", "es"] },
+                          "notification_channels": {
+                            "type": "array",
+                            "items": { "type": "string", "enum": ["email", "sms", "whatsapp", "push"] }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "expiration_details": {
+                "type": "object",
+                "required": ["expiration_reason", "expiration_time", "match_duration_hours"],
+                "properties": {
+                  "expiration_reason": {
+                    "type": "string",
+                    "enum": ["timeout", "no_response", "user_dismissed", "system_cleanup", "post_resolved"],
+                    "description": "Reason why the match expired"
+                  },
+                  "expiration_time": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When the match expired"
+                  },
+                  "match_duration_hours": {
+                    "type": "number",
+                    "minimum": 0,
+                    "description": "How long the match was active in hours"
+                  },
+                  "interaction_summary": {
+                    "type": "object",
+                    "properties": {
+                      "notifications_sent": { "type": "integer", "minimum": 0 },
+                      "views_count": { "type": "integer", "minimum": 0 },
+                      "contact_requests": { "type": "integer", "minimum": 0 },
+                      "last_activity": {
+                        "type": "string",
+                        "format": "date-time",
+                        "nullable": true
+                      }
+                    }
+                  }
+                }
+              },
+              "cleanup_actions": {
+                "type": "object",
+                "properties": {
+                  "remove_from_active_matches": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "archive_match_data": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "cancel_pending_notifications": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "update_analytics": {
+                    "type": "boolean",
+                    "default": true
+                  }
+                },
+                "description": "Cleanup actions to be performed"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  "PhotoProcessed": {
+    "allOf": [
+      { "$ref": "#/definitions/BaseEvent" },
+      {
+        "properties": {
+          "event_type": {
+            "const": "photo.processed"
+          },
+          "data": {
+            "type": "object",
+            "required": ["photo_id", "post_id", "processing_results"],
+            "properties": {
+              "photo_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Photo identifier"
+              },
+              "post_id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "Associated post identifier"
+              },
+              "processing_results": {
+                "type": "object",
+                "required": ["status", "processed_at"],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["success", "failed", "partial"],
+                    "description": "Processing status"
+                  },
+                  "processed_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When processing completed"
+                  },
+                  "ai_metadata": {
+                    "type": "object",
+                    "properties": {
+                      "objects_detected": {
                         "type": "array",
                         "items": {
                           "type": "object",
@@ -516,56 +1467,54 @@
                           }
                         }
                       },
-                      "colors": {
+                      "scene_analysis": {
+                        "type": "object",
+                        "properties": {
+                          "setting": { "type": "string" },
+                          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                        }
+                      },
+                      "text_extracted": {
                         "type": "array",
                         "items": { "type": "string" }
-                      },
-                      "scene": {
-                        "type": "string",
-                        "description": "Detected scene/environment"
-                      },
-                      "text_content": {
-                        "type": "array",
-                        "items": { "type": "string" },
-                        "description": "OCR extracted text"
                       }
                     }
                   },
-                  "location_inference": {
-                    "type": "object",
-                    "nullable": true,
-                    "properties": {
-                      "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
-                      "longitude": { "type": "number", "minimum": -180, "maximum": 180 },
-                      "source": {
-                        "type": "string",
-                        "enum": ["exif", "ai_inference", "landmark_detection"]
-                      },
-                      "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                  "generated_thumbnails": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "size": { "type": "string", "enum": ["small", "medium", "large"] },
+                        "url": { "type": "string", "format": "uri" },
+                        "dimensions": {
+                          "type": "object",
+                          "properties": {
+                            "width": { "type": "integer" },
+                            "height": { "type": "integer" }
+                          }
+                        }
+                      }
                     }
+                  },
+                  "processing_time_ms": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Time taken for processing in milliseconds"
+                  },
+                  "error_details": {
+                    "type": "object",
+                    "properties": {
+                      "error_code": { "type": "string" },
+                      "error_message": { "type": "string" },
+                      "retry_count": { "type": "integer", "minimum": 0 }
+                    },
+                    "nullable": true
                   }
                 }
               },
-              "ai_confidence": {
-                "type": "number",
-                "minimum": 0,
-                "maximum": 1,
-                "description": "Overall AI analysis confidence score"
-              },
-              "model_versions": {
-                "type": "object",
-                "properties": {
-                  "object_detection": { "type": "string" },
-                  "scene_classification": { "type": "string" },
-                  "ocr": { "type": "string" },
-                  "location_inference": { "type": "string" }
-                },
-                "description": "AI model versions used for traceability"
-              },
-              "processing_time_ms": {
-                "type": "integer",
-                "minimum": 0,
-                "description": "Processing time in milliseconds"
+              "post_owner": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUser"
               }
             }
           }
@@ -573,49 +1522,104 @@
       }
     ]
   },
-  "MatchExpired": {
+  "MatchConfirmed": {
     "allOf": [
       { "$ref": "#/definitions/BaseEvent" },
       {
         "properties": {
           "event_type": {
-            "const": "match.expired"
+            "const": "match.confirmed"
           },
           "data": {
             "type": "object",
-            "required": ["match_id", "post_id", "matched_post_id", "reporter_id", "matcher_id"],
+            "required": ["match_id", "confirmed_by", "confirmation_details"],
             "properties": {
               "match_id": {
                 "type": "string",
                 "format": "uuid",
-                "description": "Match identifier that expired"
+                "description": "Match identifier"
               },
-              "post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Original post ID"
+              "original_post": {
+                "type": "object",
+                "required": ["id", "title", "type"],
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "title": { "type": "string" },
+                  "type": { "type": "string", "enum": ["lost", "found"] },
+                  "status": { "type": "string", "enum": ["active", "resolved"] }
+                }
               },
-              "matched_post_id": {
-                "type": "string",
-                "format": "uuid",
-                "description": "Matched post ID"
+              "matched_post": {
+                "type": "object",
+                "required": ["id", "title", "type"],
+                "properties": {
+                  "id": { "type": "string", "format": "uuid" },
+                  "title": { "type": "string" },
+                  "type": { "type": "string", "enum": ["lost", "found"] },
+                  "status": { "type": "string", "enum": ["active", "resolved"] }
+                }
               },
-              "reporter_id": {
-                "type": "string",
-                "description": "Original post creator"
+              "confirmed_by": {
+                "$ref": "../../shared/domains.json#/definitions/PrivacySafeUser"
               },
-              "matcher_id": {
-                "type": "string",
-                "description": "Matched post creator"
+              "confirmation_details": {
+                "type": "object",
+                "required": ["confirmed_at", "confirmation_method"],
+                "properties": {
+                  "confirmed_at": {
+                    "type": "string",
+                    "format": "date-time",
+                    "description": "When confirmation was made"
+                  },
+                  "confirmation_method": {
+                    "type": "string",
+                    "enum": ["manual_review", "verification_proof", "admin_approval"],
+                    "description": "How the match was confirmed"
+                  },
+                  "verification_evidence": {
+                    "type": "object",
+                    "properties": {
+                      "proof_type": {
+                        "type": "string",
+                        "enum": ["photo", "description", "security_question", "receipt"]
+                      },
+                      "proof_url": {
+                        "type": "string",
+                        "format": "uri",
+                        "nullable": true
+                      },
+                      "verification_score": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1
+                      }
+                    }
+                  },
+                  "confidence_level": {
+                    "type": "string",
+                    "enum": ["low", "medium", "high", "verified"],
+                    "description": "Confidence in the match confirmation"
+                  }
+                }
               },
-              "expiration_reason": {
-                "type": "string",
-                "description": "Reason why the match expired"
-              },
-              "expiration_time": {
-                "type": "string",
-                "format": "date-time",
-                "description": "When the match expired"
+              "next_steps": {
+                "type": "object",
+                "properties": {
+                  "contact_exchange_initiated": {
+                    "type": "boolean",
+                    "description": "Whether contact exchange was automatically initiated"
+                  },
+                  "contact_request_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true,
+                    "description": "ID of contact exchange request if initiated"
+                  },
+                  "post_resolution_pending": {
+                    "type": "boolean",
+                    "description": "Whether posts are pending resolution"
+                  }
+                }
               }
             }
           }

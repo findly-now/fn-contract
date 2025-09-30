@@ -1,18 +1,99 @@
 # Event Contract Compatibility Guidelines
 
+**Document Ownership**: This document OWNS schema evolution policies, backward compatibility rules, and version management strategies.
+
 This document defines the backward compatibility strategy and version management for all event contracts in the Findly Now ecosystem.
+
+## Privacy-First Architecture Rules
+
+### 🚨 CRITICAL: NO PII IN EVENTS
+
+**Fundamental Principle**: Event schemas MUST NOT contain Personally Identifiable Information (PII).
+
+**Prohibited Fields** (Will cause immediate rejection):
+- `email` - Email addresses
+- `phone` - Phone numbers
+- `full_name` - Complete names
+- `address` - Physical addresses
+- `ssn` - Social security numbers
+- `passport` - Passport numbers
+- `credit_card` - Payment information
+- `ip_address` - IP addresses
+- Any field that can identify an individual
+
+**Allowed Privacy-Safe Fields**:
+- `user_id` - Opaque identifiers
+- `display_name` - Privacy-safe display names (e.g., "John D")
+- `organization_id` - Organization identifiers
+- `timezone` - Timezone preferences
+- `language` - Language preferences
+- `preferences` - Non-identifying settings
+
+### Contact Exchange Security
+
+Contact information sharing MUST use the secure token pattern:
+
+**✅ CORRECT - Privacy-Safe Pattern**:
+```json
+{
+  "contact_token": {
+    "token": "encrypted_contact_data_token",
+    "expires_at": "2025-01-15T12:00:00Z",
+    "contact_methods": ["email", "phone"],
+    "restrictions": {
+      "single_use": true,
+      "platform_mediated": false
+    }
+  }
+}
+```
+
+**❌ INCORRECT - PII Violation**:
+```json
+{
+  "contact_info": {
+    "email": "user@example.com", // ❌ PII in event
+    "phone": "+1234567890"       // ❌ PII in event
+  }
+}
+```
+
+### PrivacySafeUser Pattern
+
+All events MUST use the `PrivacySafeUser` schema reference instead of raw user data:
+
+**✅ CORRECT**:
+```json
+{
+  "user": {
+    "$ref": "../../shared/domains.json#/definitions/PrivacySafeUser"
+  }
+}
+```
+
+**❌ INCORRECT**:
+```json
+{
+  "user": {
+    "email": "user@example.com",  // ❌ PII violation
+    "full_name": "John Doe"       // ❌ PII violation
+  }
+}
+```
 
 ## Contract Versioning Strategy
 
 ### Schema Evolution Rules
 
 **BREAKING CHANGES** (require major version bump):
+- Adding PII fields to events (NEVER ALLOWED - immediate rejection)
 - Removing required fields
 - Changing field types (e.g., string → integer)
 - Renaming fields
 - Changing event_type values
 - Modifying enum values (removing options)
 - Changing the structure of nested objects
+- Replacing PrivacySafeUser references with raw user data
 
 **NON-BREAKING CHANGES** (minor version bump):
 - Adding optional fields
@@ -41,15 +122,24 @@ All event types are considered **immutable** once published:
 #### Matching Events (`posts.matching` topic)
 - `post.matched` - **STABLE** since v1.0.0
 - `post.claimed` - **STABLE** since v1.0.0
+- `match.confirmed` - **STABLE** since v1.2.0 (PRIVACY-SAFE)
 - `match.expired` - **STABLE** since v1.1.0
 
 #### AI Enhancement Events (`media-ai.enrichment` topic)
 - `post.enhanced` - **STABLE** since v1.0.0
+- `photo.processed` - **STABLE** since v1.2.0 (PRIVACY-SAFE)
 
 #### User Events (`users.events` topic)
-- `user.registered` - **STABLE** since v1.0.0
-- `organization.staff_added` - **STABLE** since v1.0.0
-- `communication.opt_in` - **STABLE** since v1.0.0
+- `user.registered` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
+- `user.updated` - **STABLE** since v1.2.0 (PRIVACY-SAFE)
+- `organization.staff_added` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
+- `communication.opt_in` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
+
+#### Contact Exchange Events (`contact.exchange` topic)
+- `contact.exchange.requested` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
+- `contact.exchange.approved` - **STABLE** since v1.2.0 (PRIVACY-SAFE, token-based)
+- `contact.exchange.denied` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
+- `contact.exchange.expired` - **STABLE** since v1.0.0 (PRIVACY-SAFE)
 
 #### Notification Events (`notifications.delivery` topic)
 - `notification.sent` - **STABLE** since v1.0.0
@@ -163,6 +253,33 @@ All events MUST pass validation against:
 - JSON Schema definitions
 - AsyncAPI specification
 - Backward compatibility tests
+- **Privacy compliance validation (NO PII)**
+
+### Privacy Validation Rules
+
+**Automated PII Detection**:
+Events are automatically scanned for prohibited fields:
+```bash
+# Example validation that WILL REJECT the schema
+{
+  "email": "any@email.com",     # ❌ REJECTED
+  "phone": "+1234567890",       # ❌ REJECTED
+  "full_name": "John Doe",      # ❌ REJECTED
+  "address": "123 Main St"      # ❌ REJECTED
+}
+```
+
+**Required Patterns**:
+- Use `PrivacySafeUser` for all user references
+- Use `ContactExchangeToken` for contact sharing
+- Replace direct contact info with encrypted tokens
+- Ensure `display_name` contains no full names
+
+**GDPR/CCPA Compliance**:
+- Events can be freely logged and replayed
+- No data deletion required for event streams
+- Privacy-safe for cross-border data transfer
+- Supports right-to-be-forgotten without event modification
 
 ## Breaking Change Process
 

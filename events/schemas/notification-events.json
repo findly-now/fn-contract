@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://findlynow.com/schemas/notification-events.json",
   "title": "Notification Events Schema",
-  "description": "Event schemas for notification delivery lifecycle in the Lost & Found platform",
+  "description": "Event schemas for notification delivery lifecycle in the Lost & Found platform - PRIVACY-FIRST: NO PII IN EVENTS",
   "definitions": {
     "BaseEvent": {
       "type": "object",
@@ -125,19 +125,34 @@
               },
               "recipient_info": {
                 "type": "object",
+                "description": "Privacy-safe recipient information (NO PII IN EVENTS)",
                 "properties": {
-                  "email": {
+                  "user_id": {
                     "type": "string",
-                    "format": "email",
-                    "description": "Recipient email (for email notifications)"
+                    "description": "Recipient user ID (no PII)"
                   },
-                  "phone": {
+                  "channel": {
                     "type": "string",
-                    "description": "Recipient phone (for SMS/WhatsApp)"
+                    "enum": ["email", "sms", "whatsapp", "push"],
+                    "description": "Delivery channel used (no actual contact info)"
                   },
-                  "name": {
+                  "display_name": {
                     "type": "string",
-                    "description": "Recipient name"
+                    "description": "Privacy-safe display name (no PII)"
+                  },
+                  "delivery_preference": {
+                    "type": "object",
+                    "properties": {
+                      "timezone": {
+                        "type": "string",
+                        "description": "Recipient timezone for scheduling"
+                      },
+                      "language": {
+                        "type": "string",
+                        "enum": ["en", "es"],
+                        "description": "Language preference"
+                      }
+                    }
                   }
                 }
               },

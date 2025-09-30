@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/privacy-validation.json",
+  "title": "Privacy Validation Schema",
+  "description": "JSON Schema to detect and prevent PII violations in event contracts",
+  "definitions": {
+    "ProhibitedFields": {
+      "description": "Fields that MUST NOT appear in any event schema",
+      "type": "object",
+      "not": {
+        "anyOf": [
+          {
+            "properties": {
+              "email": true
+            },
+            "required": ["email"]
+          },
+          {
+            "properties": {
+              "phone": true
+            },
+            "required": ["phone"]
+          },
+          {
+            "properties": {
+              "full_name": true
+            },
+            "required": ["full_name"]
+          },
+          {
+            "properties": {
+              "first_name": true
+            },
+            "required": ["first_name"]
+          },
+          {
+            "properties": {
+              "last_name": true
+            },
+            "required": ["last_name"]
+          },
+          {
+            "properties": {
+              "address": true
+            },
+            "required": ["address"]
+          },
+          {
+            "properties": {
+              "street_address": true
+            },
+            "required": ["street_address"]
+          },
+          {
+            "properties": {
+              "postal_code": true
+            },
+            "required": ["postal_code"]
+          },
+          {
+            "properties": {
+              "zip_code": true
+            },
+            "required": ["zip_code"]
+          },
+          {
+            "properties": {
+              "ssn": true
+            },
+            "required": ["ssn"]
+          },
+          {
+            "properties": {
+              "social_security_number": true
+            },
+            "required": ["social_security_number"]
+          },
+          {
+            "properties": {
+              "passport": true
+            },
+            "required": ["passport"]
+          },
+          {
+            "properties": {
+              "passport_number": true
+            },
+            "required": ["passport_number"]
+          },
+          {
+            "properties": {
+              "driver_license": true
+            },
+            "required": ["driver_license"]
+          },
+          {
+            "properties": {
+              "credit_card": true
+            },
+            "required": ["credit_card"]
+          },
+          {
+            "properties": {
+              "bank_account": true
+            },
+            "required": ["bank_account"]
+          },
+          {
+            "properties": {
+              "ip_address": true
+            },
+            "required": ["ip_address"]
+          },
+          {
+            "properties": {
+              "date_of_birth": true
+            },
+            "required": ["date_of_birth"]
+          },
+          {
+            "properties": {
+              "birth_date": true
+            },
+            "required": ["birth_date"]
+          },
+          {
+            "properties": {
+              "phone_number": true
+            },
+            "required": ["phone_number"]
+          },
+          {
+            "properties": {
+              "email_address": true
+            },
+            "required": ["email_address"]
+          }
+        ]
+      }
+    },
+    "RequiredPrivacySafeUserReference": {
+      "description": "User references MUST use PrivacySafeUser schema",
+      "type": "object",
+      "properties": {
+        "user": {
+          "oneOf": [
+            {
+              "$ref": "../shared/domains.json#/definitions/PrivacySafeUser"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$ref": {
+                  "const": "../../shared/domains.json#/definitions/PrivacySafeUser"
+                }
+              }
+            }
+          ]
+        },
+        "requester": {
+          "oneOf": [
+            {
+              "$ref": "../shared/domains.json#/definitions/PrivacySafeUser"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$ref": {
+                  "const": "../../shared/domains.json#/definitions/PrivacySafeUser"
+                }
+              }
+            }
+          ]
+        },
+        "owner": {
+          "oneOf": [
+            {
+              "$ref": "../shared/domains.json#/definitions/PrivacySafeUser"
+            },
+            {
+              "type": "object",
+              "properties": {
+                "$ref": {
+                  "const": "../../shared/domains.json#/definitions/PrivacySafeUser"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "AllowedPrivacySafeFields": {
+      "description": "Only these user-related fields are allowed in events",
+      "type": "object",
+      "properties": {
+        "user_id": {
+          "type": "string",
+          "description": "Opaque user identifier (no PII)"
+        },
+        "display_name": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9\\s\\.\\-_]*[A-Za-z0-9]$",
+          "maxLength": 50,
+          "description": "Privacy-safe display name (no full names)"
+        },
+        "organization_id": {
+          "type": "string",
+          "description": "Organization identifier (no PII)"
+        },
+        "timezone": {
+          "type": "string",
+          "description": "User timezone (no PII)"
+        },
+        "language": {
+          "type": "string",
+          "enum": ["en", "es"],
+          "description": "User language preference (no PII)"
+        },
+        "avatar_url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Public avatar URL (no PII)"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "type": "object",
+  "allOf": [
+    {
+      "$ref": "#/definitions/ProhibitedFields"
+    }
+  ],
+  "properties": {
+    "data": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/ProhibitedFields"
+        },
+        {
+          "$ref": "#/definitions/RequiredPrivacySafeUserReference"
+        }
+      ]
+    }
+  },
+  "errorMessage": {
+    "allOf": "This schema contains PII violations. Events MUST NOT contain personally identifiable information. Use PrivacySafeUser references and ContactExchangeToken for secure data handling.",
+    "properties": {
+      "data": "Event data contains PII violations. All user references must use PrivacySafeUser schema."
+    }
+  }
+}

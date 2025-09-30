@@ -183,20 +183,11 @@
     },
     "UserPreferences": {
       "type": "object",
-      "description": "User notification preferences aggregate",
+      "description": "User notification preferences aggregate (NO PII - contact info stored separately)",
       "required": ["user_id", "global_enabled", "timezone", "language", "channel_preferences"],
       "properties": {
         "user_id": {
           "$ref": "value-objects.json#/definitions/UserID"
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "User's email address"
-        },
-        "phone": {
-          "type": "string",
-          "description": "User's phone number"
         },
         "global_enabled": {
           "type": "boolean",
@@ -210,6 +201,7 @@
         },
         "channel_preferences": {
           "type": "object",
+          "description": "Channel preferences without exposing actual contact info",
           "properties": {
             "email": {
               "$ref": "#/definitions/ChannelPreference"
@@ -337,8 +329,9 @@
               "type": "string",
               "description": "Provider's message ID"
             },
-            "recipient_info": {
-              "$ref": "value-objects.json#/definitions/ContactInfo"
+            "recipient_hash": {
+              "type": "string",
+              "description": "Hashed identifier for delivery tracking (no PII)"
             }
           }
         },
@@ -472,24 +465,15 @@
     },
     "User": {
       "type": "object",
-      "description": "User entity (simplified view for contracts)",
+      "description": "User entity (simplified view for contracts - NO PII)",
       "required": ["id", "status", "created_at"],
       "properties": {
         "id": {
           "$ref": "value-objects.json#/definitions/UserID"
         },
-        "name": {
+        "display_name": {
           "type": "string",
-          "description": "User's full name"
-        },
-        "email": {
-          "type": "string",
-          "format": "email",
-          "description": "User's email address"
-        },
-        "phone": {
-          "type": "string",
-          "description": "User's phone number"
+          "description": "User's display name (non-PII)"
         },
         "status": {
           "type": "string",
@@ -532,6 +516,298 @@
         },
         "updated_at": {
           "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "PrivacySafeUser": {
+      "type": "object",
+      "description": "Privacy-safe user representation for events and shared contexts (strict no-PII)",
+      "required": ["user_id", "display_name"],
+      "properties": {
+        "user_id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "User's display name (non-PII)"
+        },
+        "organization_id": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/OrganizationID" }
+          ],
+          "nullable": true,
+          "description": "Organization context for multi-tenant support"
+        },
+        "avatar_url": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/URL" }
+          ],
+          "nullable": true,
+          "description": "Public avatar URL (no PII)"
+        },
+        "timezone": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Timezone" }
+          ],
+          "nullable": true,
+          "description": "User timezone for scheduling (no PII)"
+        },
+        "language": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/Language" }
+          ],
+          "nullable": true,
+          "description": "User language preference (no PII)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContactExchangeToken": {
+      "type": "object",
+      "description": "Secure token for contact exchange without exposing PII",
+      "required": ["token", "expires_at"],
+      "properties": {
+        "token": {
+          "type": "string",
+          "description": "Encrypted token containing contact information"
+        },
+        "expires_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "contact_methods": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["email", "phone", "platform"]
+          },
+          "description": "Available contact methods (no actual contact info)"
+        },
+        "restrictions": {
+          "type": "object",
+          "properties": {
+            "single_use": {
+              "type": "boolean",
+              "default": false
+            },
+            "platform_mediated": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "PrivacySafeUserExtended": {
+      "type": "object",
+      "description": "Extended privacy-safe user representation with additional context for fat events (strict no-PII)",
+      "required": ["user_id", "display_name", "preferences", "verification_level"],
+      "properties": {
+        "user_id": {
+          "$ref": "value-objects.json#/definitions/UserID"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "User's display name (non-PII)"
+        },
+        "avatar_url": {
+          "allOf": [
+            { "$ref": "value-objects.json#/definitions/URL" }
+          ],
+          "nullable": true,
+          "description": "Public avatar URL (no PII)"
+        },
+        "preferences": {
+          "$ref": "#/definitions/UserPreferences"
+        },
+        "organization": {
+          "$ref": "#/definitions/OrganizationContext",
+          "nullable": true
+        },
+        "reputation_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5,
+          "nullable": true,
+          "description": "User reputation score for trust assessment"
+        },
+        "verification_level": {
+          "type": "string",
+          "enum": ["unverified", "email_verified", "phone_verified", "fully_verified"],
+          "description": "User verification level"
+        },
+        "contact_policy": {
+          "$ref": "#/definitions/ContactSharingPolicy",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "OrganizationContext": {
+      "type": "object",
+      "description": "Organization context for multi-tenant support in events",
+      "required": ["organization_id", "name", "role"],
+      "properties": {
+        "organization_id": {
+          "$ref": "value-objects.json#/definitions/OrganizationID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Organization name"
+        },
+        "role": {
+          "$ref": "value-objects.json#/definitions/OrganizationRole"
+        },
+        "settings": {
+          "$ref": "#/definitions/OrganizationSettings",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "OrganizationData": {
+      "type": "object",
+      "description": "Complete organization data for fat events",
+      "required": ["organization_id", "name", "status", "created_at", "updated_at"],
+      "properties": {
+        "organization_id": {
+          "$ref": "value-objects.json#/definitions/OrganizationID"
+        },
+        "name": {
+          "type": "string",
+          "description": "Organization name"
+        },
+        "description": {
+          "type": "string",
+          "nullable": true,
+          "description": "Organization description"
+        },
+        "type": {
+          "type": "string",
+          "nullable": true,
+          "description": "Organization type"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "suspended", "deactivated"]
+        },
+        "settings": {
+          "$ref": "#/definitions/OrganizationSettings",
+          "nullable": true
+        },
+        "branding": {
+          "$ref": "#/definitions/OrganizationBranding",
+          "nullable": true
+        },
+        "contact_policy": {
+          "$ref": "#/definitions/ContactSharingPolicy",
+          "nullable": true
+        },
+        "created_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        },
+        "updated_at": {
+          "$ref": "value-objects.json#/definitions/Timestamp"
+        }
+      },
+      "additionalProperties": false
+    },
+    "OrganizationSettings": {
+      "type": "object",
+      "description": "Organization-specific settings",
+      "properties": {
+        "default_search_radius": {
+          "$ref": "value-objects.json#/definitions/SearchRadius"
+        },
+        "max_posts_per_user": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum posts per user"
+        },
+        "auto_expire_days": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Days before posts auto-expire"
+        },
+        "ai_enhancement_policy": {
+          "$ref": "#/definitions/AIEnhancementPolicy",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "OrganizationBranding": {
+      "type": "object",
+      "description": "Organization branding information",
+      "properties": {
+        "logo_url": {
+          "$ref": "value-objects.json#/definitions/URL",
+          "nullable": true
+        },
+        "primary_color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "nullable": true,
+          "description": "Primary brand color (hex)"
+        },
+        "custom_domain": {
+          "type": "string",
+          "format": "hostname",
+          "nullable": true
+        }
+      },
+      "additionalProperties": false
+    },
+    "ContactSharingPolicy": {
+      "type": "object",
+      "description": "Contact sharing preferences and policies",
+      "properties": {
+        "auto_approve_verified": {
+          "type": "boolean",
+          "default": false,
+          "description": "Auto-approve contact requests from verified users"
+        },
+        "require_verification": {
+          "type": "boolean",
+          "default": true,
+          "description": "Require verification for contact sharing"
+        },
+        "preferred_contact_method": {
+          "type": "string",
+          "enum": ["email", "phone", "platform"],
+          "nullable": true,
+          "description": "Preferred contact method"
+        },
+        "max_requests_per_day": {
+          "type": "integer",
+          "minimum": 0,
+          "nullable": true,
+          "description": "Maximum contact requests per day (0 = unlimited)"
+        }
+      },
+      "additionalProperties": false
+    },
+    "AIEnhancementPolicy": {
+      "type": "object",
+      "description": "AI enhancement policies for organization",
+      "properties": {
+        "auto_enhance": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically enhance posts with AI"
+        },
+        "quality_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "nullable": true,
+          "description": "Minimum quality threshold for enhancement"
+        },
+        "notify_on_enhancement": {
+          "type": "boolean",
+          "default": true,
+          "description": "Notify users when posts are enhanced"
         }
       },
       "additionalProperties": false

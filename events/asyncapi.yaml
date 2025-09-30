@@ -78,6 +78,7 @@ channels:
         oneOf:
           - $ref: '#/components/messages/PostMatched'
           - $ref: '#/components/messages/PostClaimed'
+          - $ref: '#/components/messages/MatchConfirmed'
           - $ref: '#/components/messages/MatchExpired'
     subscribe:
       summary: Services consume matching events
@@ -86,16 +87,18 @@ channels:
         oneOf:
           - $ref: '#/components/messages/PostMatched'
           - $ref: '#/components/messages/PostClaimed'
+          - $ref: '#/components/messages/MatchConfirmed'
           - $ref: '#/components/messages/MatchExpired'
 
-  users.lifecycle:
-    description: User and organization events
+  users.events:
+    description: User lifecycle and organization events
     publish:
       summary: User service publishes user events
       operationId: publishUserEvent
       message:
         oneOf:
           - $ref: '#/components/messages/UserRegistered'
+          - $ref: '#/components/messages/UserUpdated'
           - $ref: '#/components/messages/StaffAdded'
           - $ref: '#/components/messages/CommunicationOptIn'
     subscribe:
@@ -104,6 +107,7 @@ channels:
       message:
         oneOf:
           - $ref: '#/components/messages/UserRegistered'
+          - $ref: '#/components/messages/UserUpdated'
           - $ref: '#/components/messages/StaffAdded'
           - $ref: '#/components/messages/CommunicationOptIn'
 
@@ -126,18 +130,43 @@ channels:
           - $ref: '#/components/messages/NotificationDelivered'
           - $ref: '#/components/messages/NotificationFailed'
 
-  media-ai.enrichment:
-    description: AI-powered photo analysis and post enrichment events
+  posts.enhancements:
+    description: AI-powered photo analysis and post enrichment events from fn-media-ai service
     publish:
       summary: Media AI service publishes enhancement events
       operationId: publishEnhancementEvent
       message:
-        $ref: '#/components/messages/PostEnhanced'
+        oneOf:
+          - $ref: '#/components/messages/PostEnhanced'
+          - $ref: '#/components/messages/PhotoProcessed'
     subscribe:
       summary: Services consume post enhancement events
       operationId: handleEnhancementEvent
       message:
-        $ref: '#/components/messages/PostEnhanced'
+        oneOf:
+          - $ref: '#/components/messages/PostEnhanced'
+          - $ref: '#/components/messages/PhotoProcessed'
+
+  contact-exchange.events:
+    description: Secure contact exchange workflow events (PII-free)
+    publish:
+      summary: Contact exchange service publishes secure exchange events
+      operationId: publishContactExchangeEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ContactExchangeRequested'
+          - $ref: '#/components/messages/ContactExchangeApproved'
+          - $ref: '#/components/messages/ContactExchangeDenied'
+          - $ref: '#/components/messages/ContactExchangeExpired'
+    subscribe:
+      summary: Services consume contact exchange events
+      operationId: handleContactExchangeEvent
+      message:
+        oneOf:
+          - $ref: '#/components/messages/ContactExchangeRequested'
+          - $ref: '#/components/messages/ContactExchangeApproved'
+          - $ref: '#/components/messages/ContactExchangeDenied'
+          - $ref: '#/components/messages/ContactExchangeExpired'
 
 components:
   securitySchemes:
@@ -286,10 +315,19 @@ components:
             version: 1
             data:
               user_id: "user-12345"
-              name: "John Doe"
-              email: "john.doe@example.com"
-              phone: "+1234567890"
+              display_name: "John D"
               registration_source: "web"
+              verification_status:
+                email_verified: true
+                phone_verified: true
+
+    UserUpdated:
+      name: UserUpdated
+      title: User Updated Event
+      summary: Published when user information is updated (privacy-safe)
+      contentType: application/json
+      payload:
+        $ref: './schemas/user-events.json#/UserUpdated'
 
     StaffAdded:
       name: StaffAdded
@@ -352,7 +390,7 @@ components:
       summary: Published when AI analysis enhances a post with metadata
       contentType: application/json
       payload:
-        $ref: './schemas/post-events.json#/PostEnhanced'
+        $ref: './schemas/ai-enhancement-events.json#/PostEnhanced'
       examples:
         - name: AI photo analysis completed
           summary: Example of AI-enhanced post with extracted metadata
@@ -412,3 +450,152 @@ components:
               matcher_id: "user-54321"
               expiration_reason: "No response within 48 hours"
               expiration_time: "2025-01-15T12:00:00.000Z"
+
+    PhotoProcessed:
+      name: PhotoProcessed
+      title: Photo Processing Completed Event
+      summary: Published when AI photo processing is completed
+      contentType: application/json
+      payload:
+        $ref: './schemas/ai-enhancement-events.json#/PhotoProcessed'
+      examples:
+        - name: Successful photo processing
+          summary: Example of completed AI photo analysis
+          payload:
+            id: "photo-process-123"
+            event_type: "photo.processed"
+            timestamp: "2025-01-15T10:33:00.000Z"
+            version: 1
+            data:
+              photo_id: "photo-456"
+              post_id: "post-789"
+              processing_results:
+                status: "success"
+                processed_at: "2025-01-15T10:33:00.000Z"
+                ai_metadata:
+                  objects_detected:
+                    - name: "smartphone"
+                      confidence: 0.95
+                  scene_analysis:
+                    setting: "park"
+                    confidence: 0.88
+
+    MatchConfirmed:
+      name: MatchConfirmed
+      title: Match Confirmation Event
+      summary: Published when a potential match is confirmed by verification
+      contentType: application/json
+      payload:
+        $ref: './schemas/post-events.json#/MatchConfirmed'
+      examples:
+        - name: Match confirmed
+          summary: Example of confirmed match between lost and found items
+          payload:
+            id: "match-confirm-123"
+            event_type: "match.confirmed"
+            timestamp: "2025-01-15T11:15:00.000Z"
+            version: 1
+            data:
+              match_id: "match-456-789"
+              confirmed_by:
+                user_id: "user-12345"
+                display_name: "John D"
+              confirmation_details:
+                confirmed_at: "2025-01-15T11:15:00.000Z"
+                confirmation_method: "verification_proof"
+                confidence_level: "high"
+
+    ContactExchangeRequested:
+      name: ContactExchangeRequested
+      title: Contact Exchange Requested Event
+      summary: Published when contact exchange is requested (PII-free)
+      contentType: application/json
+      payload:
+        $ref: './schemas/contact-exchange-events.json#/ContactExchangeRequested'
+      examples:
+        - name: Contact request submitted
+          summary: Example of secure contact exchange request (no PII in events)
+          payload:
+            id: "contact-req-123"
+            event_type: "contact.exchange.requested"
+            timestamp: "2025-01-15T11:30:00.000Z"
+            version: 1
+            data:
+              contact_request:
+                request_id: "req-456-789"
+                status: "pending"
+                expires_at: "2025-01-17T11:30:00.000Z"
+              requester:
+                user_id: "user-12345"
+                display_name: "John D"
+                verification_level: "email_verified"
+              owner:
+                user_id: "user-54321"
+                display_name: "Jane S"
+
+    ContactExchangeApproved:
+      name: ContactExchangeApproved
+      title: Contact Exchange Approved Event
+      summary: Published when contact exchange is approved (secure token, no PII)
+      contentType: application/json
+      payload:
+        $ref: './schemas/contact-exchange-events.json#/ContactExchangeApproved'
+      examples:
+        - name: Contact approved
+          summary: Example of approved contact exchange with secure token
+          payload:
+            id: "contact-approve-456"
+            event_type: "contact.exchange.approved"
+            timestamp: "2025-01-15T11:45:00.000Z"
+            version: 1
+            data:
+              contact_approval:
+                request_id: "req-456-789"
+                approval_type: "full_contact"
+                contact_token:
+                  token: "encrypted_contact_token_xyz"
+                  expires_at: "2025-01-20T11:45:00.000Z"
+                  contact_methods: ["email", "phone"]
+
+    ContactExchangeDenied:
+      name: ContactExchangeDenied
+      title: Contact Exchange Denied Event
+      summary: Published when contact exchange is denied
+      contentType: application/json
+      payload:
+        $ref: './schemas/contact-exchange-events.json#/ContactExchangeDenied'
+      examples:
+        - name: Contact denied
+          summary: Example of denied contact exchange request
+          payload:
+            id: "contact-deny-789"
+            event_type: "contact.exchange.denied"
+            timestamp: "2025-01-15T12:00:00.000Z"
+            version: 1
+            data:
+              contact_denial:
+                request_id: "req-456-789"
+                denial_reason: "insufficient_verification"
+                denied_at: "2025-01-15T12:00:00.000Z"
+
+    ContactExchangeExpired:
+      name: ContactExchangeExpired
+      title: Contact Exchange Expired Event
+      summary: Published when contact exchange request expires
+      contentType: application/json
+      payload:
+        $ref: './schemas/contact-exchange-events.json#/ContactExchangeExpired'
+      examples:
+        - name: Request expired
+          summary: Example of expired contact exchange request
+          payload:
+            id: "contact-expire-abc"
+            event_type: "contact.exchange.expired"
+            timestamp: "2025-01-17T11:30:00.000Z"
+            version: 1
+            data:
+              contact_expiration:
+                request_id: "req-456-789"
+                expiration_reason: "timeout"
+                expired_at: "2025-01-17T11:30:00.000Z"
+                duration_hours: 48

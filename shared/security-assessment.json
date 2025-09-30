@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://findlynow.com/schemas/security-assessment.json",
+  "title": "Security Assessment Structures",
+  "description": "Security assessment structures for contact exchange workflows",
+  "definitions": {
+    "SecurityAssessment": {
+      "type": "object",
+      "required": ["risk_level", "trust_score"],
+      "properties": {
+        "risk_level": {
+          "type": "string",
+          "enum": ["low", "medium", "high"]
+        },
+        "risk_factors": {
+          "type": "array",
+          "items": { "type": "string" },
+          "nullable": true
+        },
+        "trust_score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "verification_met": {
+          "type": "array",
+          "items": { "type": "string" },
+          "nullable": true
+        },
+        "recommendation": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "AlternativeActions": {
+      "type": "object",
+      "properties": {
+        "suggested_actions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "nullable": true
+        },
+        "retry_allowed": {
+          "type": "boolean",
+          "default": true
+        },
+        "retry_after_hours": {
+          "type": "integer",
+          "minimum": 1,
+          "nullable": true
+        },
+        "support_contact": {
+          "type": "string",
+          "nullable": true
+        }
+      }
+    },
+    "CleanupActions": {
+      "type": "object",
+      "properties": {
+        "revoke_contact_access": {
+          "type": "boolean",
+          "default": true
+        },
+        "archive_request_data": {
+          "type": "boolean",
+          "default": true
+        },
+        "update_analytics": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    }
+  }
+}
